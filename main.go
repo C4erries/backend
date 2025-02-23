@@ -8,7 +8,6 @@ import (
 
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -162,18 +161,18 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 
 func WriteForm(f *form) (err error) {
 
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
+	//postgresUser := os.Getenv("POSTGRES_USER")
+	//postgresPassword := os.Getenv("POSTGRES_PASSWORD")
+	//postgresDB := os.Getenv("POSTGRES_DB")
 	/*
 		postgresHost := os.Getenv("POSTGRES_HOST")
 		connectStr := "host=" + postgresHost + " user=" + postgresUser +
 		" password=" + postgresPassword +
 		" dbname=" + postgresDB + " sslmode=disable"
 	*/
-	//postgresUser := "postgres"
-	//postgresPassword := "123"
-	//postgresDB := "back3"
+	postgresUser := "postgres"
+	postgresPassword := "123"
+	postgresDB := "back3"
 	connectStr := "user=" + postgresUser +
 		" password=" + postgresPassword +
 		" dbname=" + postgresDB + " sslmode=disable"
@@ -205,10 +204,11 @@ func WriteForm(f *form) (err error) {
 }
 
 func main() {
-	port := os.Getenv("APP_PORT")
+	//port := os.Getenv("APP_PORT")
 	server := http.Server{
-		Addr: "0.0.0.0:" + port,
+		Addr: "0.0.0.0:" + "8080",
 	}
 	http.HandleFunc("/process", process)
+	log.Println("starting server..")
 	server.ListenAndServe()
 }
