@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"os"
 
 	"net/http"
 	"net/url"
@@ -55,6 +56,7 @@ func process(w http.ResponseWriter, r *http.Request) {
 
 func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 	var check bool = false
+	var gen bool = false
 	for key, value := range form {
 
 		if key == "Fio" {
@@ -112,8 +114,9 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 		if key == "Gender" {
 			var v string = value[0]
 			if v != "Male" && v != "Female" {
-				*formerrors = append(*formerrors, 5)
+				gen = false
 			} else {
+				gen = true
 				f.gender = v
 			}
 		}
@@ -149,6 +152,9 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 			}
 		}
 	}
+	if !gen {
+		*formerrors = append(*formerrors, 5)
+	}
 	if !check {
 		*formerrors = append(*formerrors, 8)
 	}
@@ -161,18 +167,18 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 
 func WriteForm(f *form) (err error) {
 
-	//postgresUser := os.Getenv("POSTGRES_USER")
-	//postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	//postgresDB := os.Getenv("POSTGRES_DB")
+	postgresUser := os.Getenv("POSTGRES_USER")
+	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
+	postgresDB := os.Getenv("POSTGRES_DB")
 	/*
 		postgresHost := os.Getenv("POSTGRES_HOST")
 		connectStr := "host=" + postgresHost + " user=" + postgresUser +
 		" password=" + postgresPassword +
 		" dbname=" + postgresDB + " sslmode=disable"
 	*/
-	postgresUser := "postgres"
-	postgresPassword := "123"
-	postgresDB := "back3"
+	//postgresUser := "postgres"
+	//postgresPassword := "123"
+	//postgresDB := "back3"
 	connectStr := "user=" + postgresUser +
 		" password=" + postgresPassword +
 		" dbname=" + postgresDB + " sslmode=disable"
@@ -204,9 +210,9 @@ func WriteForm(f *form) (err error) {
 }
 
 func main() {
-	//port := os.Getenv("APP_PORT")
+	var port string = os.Getenv("APP_PORT")
 	server := http.Server{
-		Addr: "0.0.0.0:" + "8080",
+		Addr: "0.0.0.0:" + port,
 	}
 	http.HandleFunc("/process", process)
 	log.Println("starting server..")
