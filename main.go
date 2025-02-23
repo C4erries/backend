@@ -30,7 +30,7 @@ func process(w http.ResponseWriter, r *http.Request) {
 	var formerrors []int
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Methods", "GET POST PUT OPTIONS CONNECT HEAD")
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
 		return
