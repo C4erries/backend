@@ -12,7 +12,7 @@ sudo apt-get update
 sudo apt-get install -y docker.io docker-compose git
 
 # Путь к проекту (относительно расположения скрипта)
-PROJECT_DIR="./server"
+PROJECT_DIR="./backend3"
 
 # Проверяем, существует ли директория проекта
 if [ -d "$PROJECT_DIR" ]; then
@@ -30,17 +30,17 @@ if [ -d "$PROJECT_DIR" ]; then
   NEW_COMMIT=$(git rev-parse HEAD)
   if [ "$OLD_COMMIT" == "$NEW_COMMIT" ]; then
     echo "Изменений нет. Запускаю существующие контейнеры..."
-    docker-compose up -d
+    sudo docker-compose up -d
   else
     echo "Обнаружены изменения. Пересобираю и запускаю контейнеры..."
-    docker-compose up -d --build
+    sudo docker-compose up -d --build
   fi
 else
   echo "Директория проекта $PROJECT_DIR не существует. Клонирую репозиторий..."
   git clone https://github.com/c4erries/backend.git "$PROJECT_DIR"
   cd "$PROJECT_DIR"
   echo "Запускаю сборку, а затем контейнеры..."
-  docker-compose up -d --build
+  sudo docker-compose up -d --build
 fi
 
 echo "=== Завершение скрипта: $(date) ==="
