@@ -2,8 +2,10 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
+
 	"net/http"
 	"net/url"
 	"os"
@@ -26,30 +28,44 @@ type form struct {
 
 func process(w http.ResponseWriter, r *http.Request) {
 	var formerrors []int
-	r.ParseForm()
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
+		return
+	}
 	var f form
-	err := Validate(&f, r.Form, formerrors)
+	err := Validate(&f, r.Form, &formerrors)
 	if err != nil {
-		fmt.Print(err)
+		log.Print(err)
+		res, _ := json.Marshal(formerrors)
+		w.WriteHeader(400)
+		w.Write(res)
+
 	} else {
 		err := WriteForm(&f)
 		if err != nil {
-			fmt.Print(err)
+			log.Print(err)
 		}
+		w.WriteHeader(200)
+
 	}
+
 }
 
-func Validate(f *form, form url.Values, formerrors []int) (err error) {
+func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 	var check bool = false
 	for key, value := range form {
+
 		if key == "Fio" {
 			var v string = value[0]
 			r, err := regexp.Compile(`^[A-Za-zА-Яа-яЁё\s]{1,150}$`)
 			if err != nil {
-				fmt.Print(err)
+				log.Print(err)
 			}
 			if !r.MatchString(v) {
-				formerrors = append(formerrors, 1)
+				*formerrors = append(*formerrors, 1)
 			} else {
 				f.fio = v
 			}
@@ -59,10 +75,10 @@ func Validate(f *form, form url.Values, formerrors []int) (err error) {
 			var v string = value[0]
 			r, err := regexp.Compile(`^\+[0-9]{1,29}$`)
 			if err != nil {
-				fmt.Print(err)
+				log.Print(err)
 			}
 			if !r.MatchString(v) {
-				formerrors = append(formerrors, 2)
+				*formerrors = append(*formerrors, 2)
 			} else {
 				f.tel = v
 			}
@@ -72,10 +88,10 @@ func Validate(f *form, form url.Values, formerrors []int) (err error) {
 			var v string = value[0]
 			r, err := regexp.Compile(`^[A-Za-z0-9._%+-]{1,30}@[A-Za-z0-9.-]{1,20}\.[A-Za-z]{1,10}$`)
 			if err != nil {
-				fmt.Print(err)
+				log.Print(err)
 			}
 			if !r.MatchString(v) {
-				formerrors = append(formerrors, 3)
+				*formerrors = append(*formerrors, 3)
 			} else {
 				f.email = v
 			}
@@ -85,10 +101,10 @@ func Validate(f *form, form url.Values, formerrors []int) (err error) {
 			var v string = value[0]
 			r, err := regexp.Compile(`^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$`)
 			if err != nil {
-				fmt.Print(err)
+				log.Print(err)
 			}
 			if !r.MatchString(v) {
-				formerrors = append(formerrors, 4)
+				*formerrors = append(*formerrors, 4)
 			} else {
 				f.date = v
 			}
@@ -97,7 +113,7 @@ func Validate(f *form, form url.Values, formerrors []int) (err error) {
 		if key == "Gender" {
 			var v string = value[0]
 			if v != "Male" && v != "Female" {
-				formerrors = append(formerrors, 5)
+				*formerrors = append(*formerrors, 5)
 			} else {
 				f.gender = v
 			}
@@ -110,6 +126,7 @@ func Validate(f *form, form url.Values, formerrors []int) (err error) {
 
 		if key == "Familiar" {
 			var v string = value[0]
+
 			if v == "on" {
 				check = true
 			}
@@ -119,12 +136,12 @@ func Validate(f *form, form url.Values, formerrors []int) (err error) {
 			for _, p := range value {
 				np, err := strconv.Atoi(p)
 				if err != nil {
-					fmt.Print(err)
-					formerrors = append(formerrors, 6)
+					log.Print(err)
+					*formerrors = append(*formerrors, 6)
 					break
 				} else {
 					if np < 1 || np > 11 {
-						formerrors = append(formerrors, 6)
+						*formerrors = append(*formerrors, 6)
 						break
 					} else {
 						f.favlangs = append(f.favlangs, np)
@@ -134,11 +151,12 @@ func Validate(f *form, form url.Values, formerrors []int) (err error) {
 		}
 	}
 	if !check {
-		formerrors = append(formerrors, 8)
+		*formerrors = append(*formerrors, 8)
 	}
-	if len(formerrors) == 0 {
+	if len(*formerrors) == 0 {
 		return nil
 	}
+
 	return errors.New("validation failed")
 }
 
@@ -155,7 +173,7 @@ func WriteForm(f *form) (err error) {
 	*/
 	//postgresUser := "postgres"
 	//postgresPassword := "123"
-	// postgresDB := "back3"
+	//postgresDB := "back3"
 	connectStr := "user=" + postgresUser +
 		" password=" + postgresPassword +
 		" dbname=" + postgresDB + " sslmode=disable"
@@ -173,7 +191,7 @@ func WriteForm(f *form) (err error) {
 	err = db.QueryRow(strings.Join(insertsql, ""), f.fio, f.tel,
 		f.email, f.date, f.gender, f.bio).Scan(&form_id)
 	if err != nil {
-		fmt.Print("SEEEEEEEEEEEX")
+		log.Print("YEP")
 		return err
 	}
 
@@ -189,7 +207,7 @@ func WriteForm(f *form) (err error) {
 func main() {
 	port := os.Getenv("APP_PORT")
 	server := http.Server{
-		Addr: "127.0.0.1:" + port,
+		Addr: "0.0.0.0:" + port,
 	}
 	http.HandleFunc("/process", process)
 	server.ListenAndServe()
