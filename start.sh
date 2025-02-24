@@ -2,7 +2,7 @@
 
 # Логирование
 LOG_FILE="./startup.log"
-exec > >(tee -a "$LOG_FILE") 2>&1
+exec >> (tee -a "$LOG_FILE") 2>&1
 
 echo "=== Запуск скрипта: $(date) ==="
 
