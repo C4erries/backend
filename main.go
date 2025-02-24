@@ -170,18 +170,19 @@ func WriteForm(f *form) (err error) {
 	postgresUser := os.Getenv("POSTGRES_USER")
 	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
 	postgresDB := os.Getenv("POSTGRES_DB")
+
+	postgresHost := os.Getenv("POSTGRES_HOST")
+
 	/*
-		postgresHost := os.Getenv("POSTGRES_HOST")
-		connectStr := "host=" + postgresHost + " user=" + postgresUser +
-		" password=" + postgresPassword +
-		" dbname=" + postgresDB + " sslmode=disable"
+		postgresHost := "db"
+		postgresUser := "postgres"
+		postgresPassword := "****"
+		postgresDB := "back3"
 	*/
-	//postgresUser := "postgres"
-	//postgresPassword := "123"
-	//postgresDB := "back3"
-	connectStr := "user=" + postgresUser +
+	connectStr := "host=" + postgresHost + " user=" + postgresUser +
 		" password=" + postgresPassword +
 		" dbname=" + postgresDB + " sslmode=disable"
+	//log.Println(connectStr)
 	db, err := sql.Open("postgres", connectStr)
 	if err != nil {
 		return err
@@ -203,6 +204,7 @@ func WriteForm(f *form) (err error) {
 	for _, v := range f.favlangs {
 		_, err = db.Exec("INSERT INTO favlangs VALUES ($1, $2)", form_id, v)
 		if err != nil {
+			log.Println("INSERT INTO favlangs aborted")
 			return err
 		}
 	}
