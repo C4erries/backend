@@ -1,4 +1,4 @@
-#!/bin/bash
+
 
 # Логирование
 LOG_FILE="./startup.log"
