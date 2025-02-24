@@ -2,7 +2,8 @@
 
 # Логирование
 LOG_FILE="./startup.log"
-exec >> "$LOG_FILE" 2>&1
+{
+   
 
 echo "=== Запуск скрипта: $(date) ==="
 
@@ -44,3 +45,4 @@ else
 fi
 
 echo "=== Завершение скрипта: $(date) ==="
+} | tee -a "$LOG_FILE"
