@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . .
 
 # Собираем приложение
-RUN go build -o backend .
+RUN go build -o backend ./cmd/backend
 
 # alpine -- легковесный образ linux для контейнера
 FROM alpine:latest

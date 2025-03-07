@@ -1,60 +1,79 @@
-package main
+package server
 
 import (
-	"database/sql"
+	"backend/internal/database"
+	"backend/internal/types"
 	"encoding/json"
 	"errors"
 	"log"
-	"os"
-
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
-	"strings"
-
-	_ "github.com/lib/pq"
+	"time"
 )
 
-type form struct {
-	fio      string
-	tel      string
-	email    string
-	date     string
-	gender   string
-	favlangs []int
-	bio      string
-}
-
-func process(w http.ResponseWriter, r *http.Request) {
+func ProcessHandler(w http.ResponseWriter, r *http.Request) {
 	var formerrors []int
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET POST PUT OPTIONS CONNECT HEAD")
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
 		return
 	}
-	var f form
-	err := Validate(&f, r.Form, &formerrors)
+
+	var f types.Form
+	err := validate(&f, r.Form, &formerrors)
 	if err != nil {
 		log.Print(err)
-		res, _ := json.Marshal(formerrors)
-		w.WriteHeader(400)
-		w.Write(res)
 
+		errors_json, _ := json.Marshal(formerrors)
+		setErrorsCookie(w, errors_json)
 	} else {
-		err := WriteForm(&f)
+		setSucsessCookie(w)
+
+		err := database.WriteForm(&f)
 		if err != nil {
 			log.Print(err)
 		}
-		w.WriteHeader(200)
-
 	}
 
+	form_json, _ := json.Marshal(f)
+	setFormDataCookie(w, form_json)
 }
 
-func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
+func setFormDataCookie(w http.ResponseWriter, json_data []byte) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "values",
+		Value:    string(json_data),
+		Path:     "/process",
+		Expires:  time.Now().Add(1 * time.Hour),
+		HttpOnly: true,
+		Secure:   true,
+	})
+}
+
+func setErrorsCookie(w http.ResponseWriter, formerrors []byte) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "errors",
+		Value:    string(formerrors),
+		Path:     "/process",
+		Expires:  time.Now().AddDate(1, 0, 0), // 1 year
+		HttpOnly: true,
+		Secure:   true,
+	})
+}
+
+func setSucsessCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "form_success",
+		Value:    "1",
+		Path:     "/process",
+		Expires:  time.Now().Add(1 * time.Hour), // 1 час
+		HttpOnly: true,
+	})
+}
+
+func validate(f *types.Form, form url.Values, formerrors *[]int) (err error) {
 	var check bool = false
 	var gen bool = false
 	for key, value := range form {
@@ -68,7 +87,7 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 			if !r.MatchString(v) {
 				*formerrors = append(*formerrors, 1)
 			} else {
-				f.fio = v
+				f.Fio = v
 			}
 		}
 
@@ -81,7 +100,7 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 			if !r.MatchString(v) {
 				*formerrors = append(*formerrors, 2)
 			} else {
-				f.tel = v
+				f.Tel = v
 			}
 		}
 
@@ -94,7 +113,7 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 			if !r.MatchString(v) {
 				*formerrors = append(*formerrors, 3)
 			} else {
-				f.email = v
+				f.Email = v
 			}
 		}
 
@@ -107,7 +126,7 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 			if !r.MatchString(v) {
 				*formerrors = append(*formerrors, 4)
 			} else {
-				f.date = v
+				f.Date = v
 			}
 		}
 
@@ -117,13 +136,13 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 				gen = false
 			} else {
 				gen = true
-				f.gender = v
+				f.Gender = v
 			}
 		}
 
 		if key == "Bio" {
 			var v string = value[0]
-			f.bio = v
+			f.Bio = v
 		}
 
 		if key == "Familiar" {
@@ -146,7 +165,7 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 						*formerrors = append(*formerrors, 6)
 						break
 					} else {
-						f.favlangs = append(f.favlangs, np)
+						f.Favlangs = append(f.Favlangs, np)
 					}
 				}
 			}
@@ -163,60 +182,4 @@ func Validate(f *form, form url.Values, formerrors *[]int) (err error) {
 	}
 
 	return errors.New("validation failed")
-}
-
-func WriteForm(f *form) (err error) {
-
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
-
-	postgresHost := os.Getenv("POSTGRES_HOST")
-
-	/*
-		postgresHost := "db"
-		postgresUser := "postgres"
-		postgresPassword := "****"
-		postgresDB := "back3"
-	*/
-	connectStr := "host=" + postgresHost + " user=" + postgresUser +
-		" password=" + postgresPassword +
-		" dbname=" + postgresDB + " sslmode=disable"
-	//log.Println(connectStr)
-	db, err := sql.Open("postgres", connectStr)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-	var insertsql = []string{
-		"INSERT INTO forms",
-		"(fio, tel, email, birth_date, gender, bio)",
-		"VALUES ($1, $2, $3, $4, $5, $6) returning form_id",
-	}
-	var form_id int
-	err = db.QueryRow(strings.Join(insertsql, ""), f.fio, f.tel,
-		f.email, f.date, f.gender, f.bio).Scan(&form_id)
-	if err != nil {
-		log.Print("YEP")
-		return err
-	}
-
-	for _, v := range f.favlangs {
-		_, err = db.Exec("INSERT INTO favlangs VALUES ($1, $2)", form_id, v)
-		if err != nil {
-			log.Println("INSERT INTO favlangs aborted")
-			return err
-		}
-	}
-	return nil
-}
-
-func main() {
-	var port string = os.Getenv("APP_PORT")
-	server := http.Server{
-		Addr: "0.0.0.0:" + port,
-	}
-	http.HandleFunc("/process", process)
-	log.Println("starting server..")
-	server.ListenAndServe()
 }
