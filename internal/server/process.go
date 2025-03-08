@@ -4,7 +4,6 @@ import (
 	"backend/internal/database"
 	"backend/internal/types"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"log"
@@ -12,7 +11,6 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
-	"time"
 )
 
 func ProcessHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,42 +40,6 @@ func ProcessHandler(w http.ResponseWriter, r *http.Request) {
 
 	form_json, _ := json.Marshal(f)
 	setFormDataCookie(w, form_json)
-}
-
-func setFormDataCookie(w http.ResponseWriter, json_data []byte) {
-	log.Println(string(json_data))
-	http.SetCookie(w, &http.Cookie{
-		Name:     "values",
-		Value:    base64.StdEncoding.EncodeToString(json_data),
-		Path:     "/process",
-		Expires:  time.Now().Add(1 * time.Hour),
-		HttpOnly: true,
-		Secure:   true,
-	})
-}
-
-func setErrorsCookie(w http.ResponseWriter, formerrors []byte) {
-	log.Println(string(formerrors))
-	http.SetCookie(w, &http.Cookie{
-		Name:     "errors",
-		Value:    base64.StdEncoding.EncodeToString(formerrors),
-		Path:     "/process",
-		Expires:  time.Now().AddDate(1, 0, 0), // 1 year
-		HttpOnly: true,
-		Secure:   true,
-	})
-}
-
-func setSucsessCookie(w http.ResponseWriter) {
-	data, _ := json.Marshal(1)
-	log.Println(string(data))
-	http.SetCookie(w, &http.Cookie{
-		Name:     "form_success",
-		Value:    string(data),
-		Path:     "/process",
-		Expires:  time.Now().Add(1 * time.Hour), // 1 час
-		HttpOnly: true,
-	})
 }
 
 func validate(f *types.Form, form url.Values, formerrors *[]int) (err error) {
