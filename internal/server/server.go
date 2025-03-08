@@ -14,10 +14,12 @@ func Start() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/process", ProcessHandler)
+	mux.HandleFunc("/", homeHandler)
+	mux.HandleFunc("/process", processHandler)
 
 	handler := loggingMiddleware(headersMiddleware(mux))
-
+	fs := http.FileServer(http.Dir("static"))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 	log.Println("starting server..")
 	if err := http.ListenAndServe("0.0.0.0:"+port, handler); err != nil {
 		log.Fatal(err)

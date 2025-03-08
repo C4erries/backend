@@ -18,4 +18,5 @@ type FormErrors struct {
 	Gender   string `json:"Gender"`
 	Favlangs string `json:"Favlangs"`
 	Bio      string `json:"Bio"`
+	Familiar string `json:"Familiar"`
 }

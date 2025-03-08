@@ -13,11 +13,11 @@ import (
 	"strconv"
 )
 
-func ProcessHandler(w http.ResponseWriter, r *http.Request) {
+func processHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	var formerrors []int
+	var formerrors types.FormErrors
 
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
+	if err := r.ParseForm(); err != nil {
 		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
 		return
 	}
@@ -28,9 +28,10 @@ func ProcessHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 
 		errors_json, _ := json.Marshal(formerrors)
+		clearCookies(w)
 		setErrorsCookie(w, errors_json)
 	} else {
-		setSucsessCookie(w)
+		setSuccsessCookie(w)
 
 		err := database.WriteForm(ctx, &f)
 		if err != nil {
@@ -40,9 +41,11 @@ func ProcessHandler(w http.ResponseWriter, r *http.Request) {
 
 	form_json, _ := json.Marshal(f)
 	setFormDataCookie(w, form_json)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func validate(f *types.Form, form url.Values, formerrors *[]int) (err error) {
+func validate(f *types.Form, form url.Values, formerrors *types.FormErrors) (err error) {
+	var finalres bool = true
 	var check bool = false
 	var gen bool = false
 	for key, value := range form {
@@ -54,7 +57,9 @@ func validate(f *types.Form, form url.Values, formerrors *[]int) (err error) {
 				log.Print(err)
 			}
 			if !r.MatchString(v) {
-				*formerrors = append(*formerrors, 1)
+				finalres = false
+				formerrors.Fio = "Invalid fio"
+				//*formerrors = append(*formerrors, 1)
 			} else {
 				f.Fio = v
 			}
@@ -67,7 +72,9 @@ func validate(f *types.Form, form url.Values, formerrors *[]int) (err error) {
 				log.Print(err)
 			}
 			if !r.MatchString(v) {
-				*formerrors = append(*formerrors, 2)
+				finalres = false
+				formerrors.Tel = "Invalid telephone"
+				//*formerrors = append(*formerrors, 2)
 			} else {
 				f.Tel = v
 			}
@@ -80,20 +87,24 @@ func validate(f *types.Form, form url.Values, formerrors *[]int) (err error) {
 				log.Print(err)
 			}
 			if !r.MatchString(v) {
-				*formerrors = append(*formerrors, 3)
+				finalres = false
+				formerrors.Email = "Invalid email"
+				//*formerrors = append(*formerrors, 3)
 			} else {
 				f.Email = v
 			}
 		}
 
-		if key == "Birth_date" {
+		if key == "Date" {
 			var v string = value[0]
 			r, err := regexp.Compile(`^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$`)
 			if err != nil {
 				log.Print(err)
 			}
 			if !r.MatchString(v) {
-				*formerrors = append(*formerrors, 4)
+				finalres = false
+				formerrors.Date = "Invalid date"
+				//*formerrors = append(*formerrors, 4)
 			} else {
 				f.Date = v
 			}
@@ -127,11 +138,15 @@ func validate(f *types.Form, form url.Values, formerrors *[]int) (err error) {
 				np, err := strconv.Atoi(p)
 				if err != nil {
 					log.Print(err)
-					*formerrors = append(*formerrors, 6)
+					finalres = false
+					formerrors.Favlangs = "Invalid favourite langs"
+					//*formerrors = append(*formerrors, 6)
 					break
 				} else {
 					if np < 1 || np > 11 {
-						*formerrors = append(*formerrors, 6)
+						finalres = false
+						formerrors.Favlangs = "Invalid favourite langs"
+						//*formerrors = append(*formerrors, 6)
 						break
 					} else {
 						f.Favlangs = append(f.Favlangs, np)
@@ -141,12 +156,16 @@ func validate(f *types.Form, form url.Values, formerrors *[]int) (err error) {
 		}
 	}
 	if !gen {
-		*formerrors = append(*formerrors, 5)
+		finalres = false
+		formerrors.Gender = "Invalid gender"
+		//*formerrors = append(*formerrors, 5)
 	}
 	if !check {
-		*formerrors = append(*formerrors, 8)
+		finalres = false
+		formerrors.Familiar = "Invalid familiar checkbox"
+		//*formerrors = append(*formerrors, 8)
 	}
-	if len(*formerrors) == 0 {
+	if finalres {
 		return nil
 	}
 

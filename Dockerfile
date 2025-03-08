@@ -16,6 +16,8 @@ FROM alpine:latest
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
+COPY static/ /app/static/
+
 # Копируем собранное приложение
 COPY --from=builder /app/backend .
 
