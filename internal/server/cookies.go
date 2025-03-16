@@ -63,6 +63,11 @@ func getSuccessFromCookies(r *http.Request) bool {
 	return err == nil
 }
 
+func getUserNameFromCookies(r *http.Request) (string, error) {
+	name, err := r.Cookie("username")
+	return name.Value, err
+}
+
 func setFormDataCookie(w http.ResponseWriter, json_data []byte) {
 	log.Println(string(json_data))
 	http.SetCookie(w, &http.Cookie{

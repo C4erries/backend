@@ -14,7 +14,8 @@ func Start() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", homeHandler)
+	mux.HandleFunc("/", authMiddleware(homeHandler))
+	mux.HandleFunc("/form", formHandler)
 	mux.HandleFunc("/process", processHandler)
 
 	handler := loggingMiddleware(headersMiddleware(mux))

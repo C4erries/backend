@@ -3,7 +3,6 @@ package server
 import (
 	"backend/internal/database"
 	"backend/internal/types"
-	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -14,7 +13,6 @@ import (
 )
 
 func processHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
 	var formerrors types.FormErrors
 
 	if err := r.ParseForm(); err != nil {
@@ -33,7 +31,7 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		setSuccsessCookie(w)
 
-		err := database.WriteForm(ctx, &f)
+		err := database.WriteForm(&f)
 		if err != nil {
 			log.Print(err)
 		}

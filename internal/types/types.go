@@ -1,5 +1,10 @@
 package types
 
+type User struct {
+	Username string `json:"Username"`
+	Password string `json:"Password"`
+}
+
 type Form struct {
 	Fio      string `json:"Fio"`
 	Tel      string `json:"Tel"`
