@@ -1,26 +1,32 @@
 CREATE TABLE IF NOT EXISTS forms
 (
-	form_id SERIAL PRIMARY KEY,
-	fio CHARACTER VARYING(150),
-	tel CHARACTER VARYING(30),
-	email CHARACTER VARYING(65),
-	birth_date DATE,
-	gender CHARACTER VARYING(6),
-	bio TEXT
+username CHARACTER VARYING(40) PRIMARY KEY,
+fio CHARACTER VARYING(150),
+tel CHARACTER VARYING(30),
+email CHARACTER VARYING(65),
+birth_date DATE,
+gender CHARACTER VARYING(6),
+bio TEXT
 );
 
 CREATE TABLE IF NOT EXISTS langs
 (
-	lang_id SERIAL PRIMARY KEY,
-	lang_name CHARACTER VARYING(30)
+lang_id SERIAL PRIMARY KEY,
+lang_name CHARACTER VARYING(30) UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS favlangs(
-	form_id INTEGER,
-	lang_id INTEGER,
-	PRIMARY KEY (form_id, lang_id),
-	FOREIGN KEY (form_id) REFERENCES forms (form_id),
-	FOREIGN KEY (lang_id) REFERENCES langs (lang_id)
+username CHARACTER VARYING(40),
+lang_id INTEGER,
+PRIMARY KEY (username, lang_id),
+FOREIGN KEY (username) REFERENCES forms (username),
+FOREIGN KEY (lang_id) REFERENCES langs (lang_id)
+);
+
+CREATE TABLE IF NOT EXISTS userinfo(
+username CHARACTER VARYING(40) PRIMARY KEY,
+enc_password CHARACTER VARYING(300),
+FOREIGN KEY (username) REFERENCES forms (username)
 );
 
 INSERT INTO langs VALUES

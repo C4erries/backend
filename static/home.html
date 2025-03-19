@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title> backend </title>
+  </head>
+  <style>
+    /* Общие стили для body */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* Стили для контейнера midblocks */
+.midblocks {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+/* Стили для формы */
+#loginform {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Стили для label */
+#loginform label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 14px;
+    color: #333;
+}
+
+/* Стили для input */
+#loginform input[type="text"],
+#loginform input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Стили для кнопок */
+#loginform input[type="submit"],
+#loginform input[type="button"] {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+#loginform input[type="submit"]:hover,
+#loginform input[type="button"]:hover {
+    background-color: #0056b3;
+}
+
+/* Стили для кнопки "Выход" */
+#loginform input[type="submit"][value="Выход"] {
+    background-color: #dc3545;
+}
+
+#loginform input[type="submit"][value="Выход"]:hover {
+    background-color: #c82333;
+}
+
+/* Стили для сообщения об ошибке */
+.LoginError {
+    color: #dc3545;
+    background-color: #f8d7da;
+    padding: 10px;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+/* Адаптивные стили для мобильных устройств */
+@media (max-width: 480px) {
+    .midblocks {
+        padding: 15px;
+    }
+
+    #loginform input[type="text"],
+    #loginform input[type="password"] {
+        padding: 8px;
+    }
+
+    #loginform input[type="submit"],
+    #loginform input[type="button"] {
+        padding: 8px;
+        font-size: 12px;
+    }
+}
+  </style>
+
+  <body class="body">
+    <div class="midblocks">
+        
+      {{ if .Username }}
+      <form id="loginform" method="POST" action="/exit">
+        <input type="submit" value="Выход">
+        <input type="button" value="Перейти к форме" onclick="window.location='/form'">
+      </form>
+      {{ end }}
+      {{ if not .Username }}
+      {{ if .LoginError }} <div class="LoginError"> {{ .LoginError }} </div> {{ end }}
+      <form id="loginform" method="POST" action="/login">
+        <label>
+            Имя пользователя:
+            <input name="Username">
+        </label>
+        <label>
+            Пароль:
+            <input name="Password">
+        </label>
+        <input type="submit" value="Вход">
+        <input type="button" value="Перейти к форме" onclick="window.location='/form'">
+      </form>
+      {{ end }}
+    </div>
+  </body>
+</html>

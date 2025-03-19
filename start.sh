@@ -14,7 +14,7 @@ sudo apt-get update
 sudo apt-get install -y docker.io docker-compose git
 
 # Путь к проекту (относительно расположения скрипта)
-PROJECT_DIR="./"
+PROJECT_DIR="/home/jorbe/backend3"
 
 # Проверяем, существует ли директория проекта
 if [ -d "$PROJECT_DIR" ]; then
