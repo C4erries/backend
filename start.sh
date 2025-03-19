@@ -24,6 +24,8 @@ if [ -d "$PROJECT_DIR" ]; then
   # Сохраняем текущий хэш коммита
   OLD_COMMIT=$(git rev-parse HEAD)
 
+  echo "Отправляю локальные изменения в stash ( git stash )..."
+  git stash
   # Обновляем репозиторий
   echo "Выполняю git pull..."
   git pull origin main

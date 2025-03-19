@@ -7,6 +7,7 @@
   </head>
   <style>
     /* Общие стили для body */
+/* Общие стили для body */
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
@@ -33,6 +34,7 @@ body {
 #loginform {
     display: flex;
     flex-direction: column;
+    align-items: center; /* Выравниваем элементы по центру */
     gap: 15px;
 }
 
@@ -40,7 +42,8 @@ body {
 #loginform label {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center; /* Выравниваем текст и input по центру */
+    width: 100%; /* Занимаем всю ширину формы */
     font-size: 14px;
     color: #333;
 }
@@ -48,7 +51,7 @@ body {
 /* Стили для input */
 #loginform input[type="text"],
 #loginform input[type="password"] {
-    width: 100%;
+    width: 80%; /* Уменьшаем ширину input для лучшего визуального восприятия */
     padding: 10px;
     margin-top: 5px;
     border: 1px solid #ccc;
@@ -62,11 +65,12 @@ body {
     background-color: #007bff;
     color: white;
     border: none;
-    padding: 10px;
+    padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.3s ease;
+    width: 80%; /* Устанавливаем ширину кнопок, как у input */
 }
 
 #loginform input[type="submit"]:hover,
@@ -92,6 +96,8 @@ body {
     border-radius: 4px;
     margin-bottom: 15px;
     font-size: 14px;
+    width: 80%; /* Устанавливаем ширину, как у input */
+    text-align: center; /* Выравниваем текст по центру */
 }
 
 /* Адаптивные стили для мобильных устройств */
@@ -103,12 +109,18 @@ body {
     #loginform input[type="text"],
     #loginform input[type="password"] {
         padding: 8px;
+        width: 90%; /* Увеличиваем ширину input на мобильных устройствах */
     }
 
     #loginform input[type="submit"],
     #loginform input[type="button"] {
         padding: 8px;
         font-size: 12px;
+        width: 90%; /* Увеличиваем ширину кнопок на мобильных устройствах */
+    }
+
+    .LoginError {
+        width: 90%; /* Увеличиваем ширину сообщения об ошибке на мобильных устройствах */
     }
 }
   </style>
