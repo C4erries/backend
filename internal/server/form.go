@@ -34,6 +34,11 @@ func formHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	success := getSuccessFromCookies(r)
 
+	username, _ := getUsernameFromCookies(r)
+	password, err := getPasswordFromCookies(r)
+	if err == nil {
+		removePasswordFromCookies(w)
+	}
 	// Удаляем cookies после их использования в случае ошибки
 	if !(success) {
 		clearCookies(w)
@@ -41,12 +46,16 @@ func formHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Рендерим шаблон с данными
 	tmpl.Execute(w, struct {
-		Data    types.Form
-		Errors  types.FormErrors
-		Success bool
+		Data     types.Form
+		Errors   types.FormErrors
+		Success  bool
+		Username string
+		Password string
 	}{
-		Data:    formData,
-		Errors:  formErrors,
-		Success: success,
+		Data:     formData,
+		Errors:   formErrors,
+		Success:  success,
+		Username: username,
+		Password: password,
 	})
 }

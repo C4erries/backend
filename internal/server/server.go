@@ -17,6 +17,8 @@ func Start() {
 	mux.HandleFunc("/", authMiddleware(homeHandler))
 	mux.HandleFunc("/form", formHandler)
 	mux.HandleFunc("/process", processHandler)
+	mux.HandleFunc("/login", loginHandler)
+	mux.HandleFunc("/exit", exitHandler)
 
 	handler := loggingMiddleware(headersMiddleware(mux))
 	fs := http.FileServer(http.Dir("static"))

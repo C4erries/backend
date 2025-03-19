@@ -1,20 +1,29 @@
 package server
 
 import (
+	"log"
 	"net/http"
 	"text/template"
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.New("home.html")
+	tmpl := template.Must(template.ParseFiles("./static/home.html"))
 
-	username, _ := getUserNameFromCookies(r)
-	success := getSuccessFromCookies(r)
+	username, err := getUsernameFromCookies(r)
+	if err != nil {
+		log.Println(err)
+	} else if username == "" {
+		removeUsernameFromCookies(w)
+	}
+
+	loginError, _ := getLoginErrorFromCookies(r)
+	removeLoginErrorFromCookies(w)
+
 	tmpl.Execute(w, struct {
-		Username string
-		Success  bool
+		Username   string
+		LoginError string
 	}{
-		Username: username,
-		Success:  success,
+		Username:   username,
+		LoginError: loginError,
 	})
 }

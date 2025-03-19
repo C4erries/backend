@@ -3,43 +3,103 @@ package server
 import (
 	"backend/internal/database"
 	"backend/internal/types"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 func processHandler(w http.ResponseWriter, r *http.Request) {
-	var formerrors types.FormErrors
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
-		return
-	}
-
-	var f types.Form
-	err := validate(&f, r.Form, &formerrors)
+	username, err := getUsernameFromCookies(r)
 	if err != nil {
-		log.Print(err)
+		lastusername, err := database.GetLastUsername()
+		var newusername string
+		if err != nil {
+			newusername = "FormUser_1"
+		} else {
+			usl := strings.Split(lastusername, "_")
+			lastnum, _ := strconv.Atoi(usl[1])
+			lastnumstr := strconv.Itoa(lastnum + 1)
+			newusername = "FormUser_" + lastnumstr
+		}
 
-		errors_json, _ := json.Marshal(formerrors)
-		clearCookies(w)
-		setErrorsCookie(w, errors_json)
-	} else {
-		setSuccsessCookie(w)
-
-		err := database.WriteForm(&f)
+		user := types.User{}
+		user.Username = newusername
+		password, err := generatePassword(10)
 		if err != nil {
 			log.Print(err)
 		}
-	}
+		user.Password, err = types.HashPassword(password)
+		if err != nil {
+			log.Print(err)
+		}
 
-	form_json, _ := json.Marshal(f)
-	setFormDataCookie(w, form_json)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+		//Здесь password нужно отправлять пользователю в ответе, причём ровно один раз
+		var formerrors types.FormErrors
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
+			return
+		}
+
+		var f types.Form
+		err = validate(&f, r.Form, &formerrors)
+		if err != nil {
+			log.Print(err)
+
+			errors_json, _ := json.Marshal(formerrors)
+			clearCookies(w)
+			setErrorsCookie(w, errors_json)
+		} else {
+			setSuccessCookie(w)
+
+			err := database.WriteForm(&f, &user)
+			if err != nil {
+				log.Print(err)
+			}
+			setUsernameCookie(w, newusername)
+			setPasswordCookie(w, password)
+			login(w, types.User{Username: newusername, Password: password})
+		}
+
+		form_json, _ := json.Marshal(f)
+		setFormDataCookie(w, form_json)
+		http.Redirect(w, r, "/form", http.StatusSeeOther)
+
+	} else {
+		var formerrors types.FormErrors
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
+			return
+		}
+
+		var f types.Form
+		err = validate(&f, r.Form, &formerrors)
+		if err != nil {
+			log.Print(err)
+
+			errors_json, _ := json.Marshal(formerrors)
+			clearCookies(w)
+			setErrorsCookie(w, errors_json)
+		} else {
+			setSuccessCookie(w)
+
+			err := database.UpdateForm(&f, username)
+			if err != nil {
+				log.Print(err)
+			}
+		}
+
+		form_json, _ := json.Marshal(f)
+		setFormDataCookie(w, form_json)
+		http.Redirect(w, r, "/form", http.StatusSeeOther)
+	}
 }
 
 func validate(f *types.Form, form url.Values, formerrors *types.FormErrors) (err error) {
@@ -168,4 +228,19 @@ func validate(f *types.Form, form url.Values, formerrors *types.FormErrors) (err
 	}
 
 	return errors.New("validation failed")
+}
+
+func generatePassword(length int) (string, error) {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789__"
+	password := make([]byte, length)
+	charsetLength := big.NewInt(int64(len(charset)))
+	for i := range password {
+		index, err := rand.Int(rand.Reader, charsetLength)
+		if err != nil {
+			return "", fmt.Errorf("error generating random index: %v", err)
+		}
+		password[i] = charset[index.Int64()]
+	}
+
+	return string(password), nil
 }

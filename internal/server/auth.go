@@ -46,26 +46,18 @@ func validateJwt(tokenStr string) (*Claims, error) {
 	return claims, nil
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
-		return
-	}
-
-	var user types.User
-	parseLoginForm(&user, r)
-
+func login(w http.ResponseWriter, user types.User) error {
 	if err := database.CheckUser(&user); err != nil {
-		http.Error(w, `{"error":"ОШИБКО ЧЕК ЮЗЕР"}`, http.StatusBadGateway)
-		return
+		//http.Error(w, `{"error":"ОШИБКО ЧЕК ЮЗЕР: `+err.Error()+`"}`, http.StatusBadGateway)
+		setLoginErrorCookie(w, err.Error())
+		return err
 	}
 
 	key, err := newJwt(user.Username)
 	if err != nil {
 		http.Error(w, `{"error": "Ошибка создания ключа"}`, http.StatusBadGateway)
 		log.Panic("ошибка создания ключа", err)
-		return
+		return err
 	}
 
 	//заливаем в куки клиенту jwt ключ
@@ -75,8 +67,33 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().AddDate(0, 0, 7),
 		HttpOnly: true,
 	})
+	return nil
+}
 
-	http.Redirect(w, r, "/", http.StatusOK)
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
+		return
+	}
+
+	var user types.User
+	parseLoginForm(&user, r)
+	if err := login(w, user); err != nil {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	form, err := database.GetForm(user.Username)
+	if err != nil {
+		http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
+		return
+	}
+	form_json, _ := json.Marshal(form)
+	setUsernameCookie(w, user.Username)
+	setFormDataCookie(w, form_json)
+	setSuccessCookie(w)
+	http.Redirect(w, r, "/form", http.StatusFound)
 }
 
 func parseLoginForm(pUser *types.User, r *http.Request) error {
@@ -104,16 +121,26 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				MaxAge:   -1,
 				HttpOnly: true,
 			})
-			http.Redirect(w, r, "/login", http.StatusBadRequest)
+			http.Redirect(w, r, "/", http.StatusBadRequest)
 		}
 		form, err := database.GetForm(claims.Username)
 		if err != nil {
-			http.Error(w, `{"error": "Ошибка форма не найдена"}`, http.StatusBadGateway)
+			http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
+			next.ServeHTTP(w, r)
 			return
 		}
 		form_json, _ := json.Marshal(form)
+		setUsernameCookie(w, claims.Username)
 		setFormDataCookie(w, form_json)
-		setSuccsessCookie(w)
+		setSuccessCookie(w)
 		next.ServeHTTP(w, r)
 	}
+}
+
+func exitHandler(w http.ResponseWriter, r *http.Request) {
+	clearCookies(w)
+	removeJwtFromCookies(w)
+	removeUsernameFromCookies(w)
+	removePasswordFromCookies(w)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
