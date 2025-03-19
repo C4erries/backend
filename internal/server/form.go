@@ -4,6 +4,7 @@ import (
 	"backend/internal/types"
 	"log"
 	"net/http"
+	"strings"
 	"text/template"
 )
 
@@ -27,6 +28,10 @@ func formHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
+	date := strings.Split(formData.Date, "T")
+	formData.Date = date[0]
+	log.Println(formData.Fio)
+
 	formErrors, err := getFormErrorsFromCookies(r) // структура ошибок либо nil
 	if err != nil {
 		log.Println(formErrors)

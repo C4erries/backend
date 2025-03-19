@@ -87,6 +87,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	form, err := database.GetForm(user.Username)
 	if err != nil {
 		http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
+		clearCookies(w)
 		return
 	}
 	form_json, _ := json.Marshal(form)
@@ -126,6 +127,10 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		form, err := database.GetForm(claims.Username)
 		if err != nil {
 			http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
+			clearCookies(w)
+			removeJwtFromCookies(w)
+			removeUsernameFromCookies(w)
+			removeUsernameFromCookies(w)
 			next.ServeHTTP(w, r)
 			return
 		}
