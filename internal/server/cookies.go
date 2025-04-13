@@ -11,6 +11,7 @@ import (
 
 func clearCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "values",
 		Value:    "",
 		MaxAge:   -1,
@@ -18,6 +19,7 @@ func clearCookies(w http.ResponseWriter) {
 	})
 
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "errors",
 		Value:    "",
 		MaxAge:   -1,
@@ -25,6 +27,7 @@ func clearCookies(w http.ResponseWriter) {
 	})
 
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "form_success",
 		Value:    "",
 		MaxAge:   -1,
@@ -32,6 +35,7 @@ func clearCookies(w http.ResponseWriter) {
 	})
 
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "username",
 		Value:    "",
 		MaxAge:   -1,
@@ -42,6 +46,7 @@ func clearCookies(w http.ResponseWriter) {
 
 func removeJwtFromCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "key",
 		Value:    "",
 		MaxAge:   -1,
@@ -51,6 +56,7 @@ func removeJwtFromCookies(w http.ResponseWriter) {
 
 func removeUsernameFromCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "username",
 		Value:    "",
 		MaxAge:   -1,
@@ -60,6 +66,7 @@ func removeUsernameFromCookies(w http.ResponseWriter) {
 
 func removePasswordFromCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "password",
 		Value:    "",
 		MaxAge:   -1,
@@ -69,6 +76,7 @@ func removePasswordFromCookies(w http.ResponseWriter) {
 
 func removeLoginErrorFromCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "login_error",
 		Value:    "",
 		MaxAge:   -1,
@@ -116,6 +124,14 @@ func getUsernameFromCookies(r *http.Request) (string, error) {
 	return name.Value, nil
 }
 
+func getJWtFromCookies(r *http.Request) (string, error) {
+	jwt, err := r.Cookie("key")
+	if err != nil {
+		return "", err
+	}
+	return jwt.Value, nil
+}
+
 // if OK returns password, nil i; else return "", error
 func getPasswordFromCookies(r *http.Request) (string, error) {
 	password, err := r.Cookie("password")
@@ -135,6 +151,7 @@ func getLoginErrorFromCookies(r *http.Request) (string, error) {
 
 func setLoginErrorCookie(w http.ResponseWriter, message string) {
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "login_error",
 		Value:    message,
 		Expires:  time.Now().Add(10 * time.Minute), // 10 minuts
@@ -144,6 +161,7 @@ func setLoginErrorCookie(w http.ResponseWriter, message string) {
 
 func setUsernameCookie(w http.ResponseWriter, username string) {
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "username",
 		Value:    username,
 		Expires:  time.Now().AddDate(1, 0, 0), // 1 year
@@ -154,6 +172,7 @@ func setUsernameCookie(w http.ResponseWriter, username string) {
 func setFormDataCookie(w http.ResponseWriter, json_data []byte) {
 	log.Println(string(json_data))
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "values",
 		Value:    base64.StdEncoding.EncodeToString(json_data),
 		Expires:  time.Now().AddDate(1, 0, 0), // 1 year
@@ -164,6 +183,7 @@ func setFormDataCookie(w http.ResponseWriter, json_data []byte) {
 func setErrorsCookie(w http.ResponseWriter, formerrors []byte) {
 	log.Println(string(formerrors))
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "errors",
 		Value:    base64.StdEncoding.EncodeToString(formerrors),
 		Expires:  time.Now().AddDate(1, 0, 0), // 1 year
@@ -175,6 +195,7 @@ func setSuccessCookie(w http.ResponseWriter) {
 	data, _ := json.Marshal(1)
 	log.Println(string(data))
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "form_success",
 		Value:    string(data),
 		Expires:  time.Now().AddDate(1, 0, 0), // 1 year
@@ -184,6 +205,7 @@ func setSuccessCookie(w http.ResponseWriter) {
 
 func setPasswordCookie(w http.ResponseWriter, password string) {
 	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
 		Name:     "password",
 		Value:    password,
 		Expires:  time.Now().AddDate(1, 0, 0), // 1 year

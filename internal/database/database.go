@@ -9,15 +9,9 @@ import (
 	"strings"
 )
 
-type Database interface {
-	WriteForm(*types.Form, *types.User) error
-	UpdateForm(*types.Form, string) error
-	CheckUser(*types.User) error
-	GetForm(string) (types.Form, error)
-}
+var db *sql.DB
 
-func WriteForm(f *types.Form, u *types.User) (err error) {
-
+func Connect() (err error) {
 	postgresUser := os.Getenv("POSTGRES_USER")
 	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
 	postgresDB := os.Getenv("POSTGRES_DB")
@@ -25,21 +19,27 @@ func WriteForm(f *types.Form, u *types.User) (err error) {
 	postgresHost := os.Getenv("POSTGRES_HOST")
 
 	/*
-		postgresHost := "db"
-		postgresUser := "postgres"
-		postgresPassword := "****"
-		postgresDB := "back3"
+	   postgresHost := "db"
+	   postgresUser := "postgres"
+	   postgresPassword := "****"
+	   postgresDB := "back3"
 	*/
 	connectStr := "host=" + postgresHost + " user=" + postgresUser +
 		" password=" + postgresPassword +
 		" dbname=" + postgresDB + " sslmode=disable"
 	//log.Println(connectStr)
-	db, err := sql.Open("postgres", connectStr)
-	if err != nil {
-		return err
-	}
+	db, err = sql.Open("postgres", connectStr)
+	return err
+}
 
-	defer db.Close()
+// Функция закрытия соединения с базой. Приставка Must указывает, что функция не возвращает ошибку, а паникует
+func MustClose() {
+	if err := db.Close(); err != nil {
+		panic(err)
+	}
+}
+
+func WriteForm(f *types.Form, u *types.User) (err error) {
 
 	var insertsql = []string{
 		"INSERT INTO forms ",
@@ -72,28 +72,6 @@ func WriteForm(f *types.Form, u *types.User) (err error) {
 }
 
 func UpdateForm(f *types.Form, username string) (err error) {
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
-
-	postgresHost := os.Getenv("POSTGRES_HOST")
-
-	/*
-		postgresHost := "db"
-		postgresUser := "postgres"
-		postgresPassword := "****"
-		postgresDB := "back3"
-	*/
-	connectStr := "host=" + postgresHost + " user=" + postgresUser +
-		" password=" + postgresPassword +
-		" dbname=" + postgresDB + " sslmode=disable"
-	//log.Println(connectStr)
-	db, err := sql.Open("postgres", connectStr)
-	if err != nil {
-		return err
-	}
-
-	defer db.Close()
 
 	var updatesql = []string{
 		"UPDATE forms ",
@@ -126,39 +104,16 @@ func UpdateForm(f *types.Form, username string) (err error) {
 }
 
 func CheckUser(u *types.User) (err error) {
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
-
-	postgresHost := os.Getenv("POSTGRES_HOST")
-
-	/*
-		postgresHost := "db"
-		postgresUser := "postgres"
-		postgresPassword := "****"
-		postgresDB := "back3"
-	*/
-	connectStr := "host=" + postgresHost + " user=" + postgresUser +
-		" password=" + postgresPassword +
-		" dbname=" + postgresDB + " sslmode=disable"
-	//log.Println(connectStr)
-	db, err := sql.Open("postgres", connectStr)
-	if err != nil {
-		return err
-	}
-
-	defer db.Close()
-
 	var dbpassword string
 	err = db.QueryRow("SELECT enc_password FROM userinfo WHERE username=$1", u.Username).Scan(&dbpassword)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return errors.New("username not found")
+			return errors.New("USERNAME username or password invalid")
 		}
 		return err
 	}
-
-	if err := types.CheckPassword([]byte(dbpassword), u.Password); err != nil {
+	log.Println(dbpassword, u.Password)
+	if err := types.CheckPassword([]byte(dbpassword), os.Getenv("SALT")+u.Password); err != nil {
 		return err
 	}
 
@@ -166,28 +121,6 @@ func CheckUser(u *types.User) (err error) {
 }
 
 func GetForm(username string) (types.Form, error) {
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
-
-	postgresHost := os.Getenv("POSTGRES_HOST")
-
-	/*
-		postgresHost := "db"
-		postgresUser := "postgres"
-		postgresPassword := "****"
-		postgresDB := "back3"
-	*/
-	connectStr := "host=" + postgresHost + " user=" + postgresUser +
-		" password=" + postgresPassword +
-		" dbname=" + postgresDB + " sslmode=disable"
-	//log.Println(connectStr)
-	db, err := sql.Open("postgres", connectStr)
-	if err != nil {
-		return types.Form{}, err
-	}
-
-	defer db.Close()
 
 	var selectsql = []string{
 		"SELECT ",
@@ -199,7 +132,7 @@ func GetForm(username string) (types.Form, error) {
 	row := db.QueryRow(strings.Join(selectsql, ""), username)
 	dateparts := strings.Split(form.Date, "T")
 	form.Date = dateparts[0]
-	err = row.Scan(&form.Fio, &form.Tel, &form.Email, &form.Date, &form.Gender, &form.Bio)
+	err := row.Scan(&form.Fio, &form.Tel, &form.Email, &form.Date, &form.Gender, &form.Bio)
 	if err != nil {
 		return types.Form{}, err
 	}
@@ -222,33 +155,11 @@ func GetForm(username string) (types.Form, error) {
 }
 
 func GetLastUsername() (string, error) {
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
-
-	postgresHost := os.Getenv("POSTGRES_HOST")
-
-	/*
-	   postgresHost := "db"
-	   postgresUser := "postgres"
-	   postgresPassword := "****"
-	   postgresDB := "back3"
-	*/
-	connectStr := "host=" + postgresHost + " user=" + postgresUser +
-		" password=" + postgresPassword +
-		" dbname=" + postgresDB + " sslmode=disable"
-	//log.Println(connectStr)
-	db, err := sql.Open("postgres", connectStr)
-	if err != nil {
-		return "", err
-	}
-
-	defer db.Close()
-
 	var username string
-	err = db.QueryRow("SELECT username FROM userinfo ORDER BY username DESC LIMIT 1").Scan(&username)
+	err := db.QueryRow("SELECT username FROM userinfo ORDER BY username DESC LIMIT 1").Scan(&username)
 	if err != nil {
 		return "", err
 	}
+	log.Println("DATABASE GETLASTUSERNAME" + username)
 	return username, nil
 }

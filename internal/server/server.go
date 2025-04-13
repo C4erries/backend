@@ -14,9 +14,11 @@ func Start() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", authMiddleware(homeHandler))
-	mux.HandleFunc("/form", formHandler)
+	mux.HandleFunc("/", homeHandler)
+	mux.HandleFunc("/profile", profileHandler)
 	mux.HandleFunc("/process", processHandler)
+	mux.HandleFunc("/process/profile", processProfileHandler)
+	mux.HandleFunc("/process/register", processRegisterHandler)
 	mux.HandleFunc("/login", loginHandler)
 	mux.HandleFunc("/exit", exitHandler)
 
@@ -40,9 +42,8 @@ func loggingMiddleware(next http.Handler) http.Handler {
 // Middleware для установки header
 func headersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET POST PUT OPTIONS CONNECT HEAD")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT")
 		next.ServeHTTP(w, r)
 	})
 }

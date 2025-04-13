@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
+    <script src="static/login.js" defer></script>
+    <link rel="stylesheet" href="static/profileloginstyle.css">
+    <title> Project profile </title>
+  </head>
+
+  <body class="body">
+    <div class="midblocks">
+      {{ if .LoginError }} <div class="error"> {{ .LoginError }} </div> {{ end }}
+      <form id="loginform" method="POST" action="/login">
+        <label>
+            Имя пользователя:
+            <input name="Username">
+        </label>
+        <label>
+            Пароль:
+            <input name="Password">
+        </label>
+        <input type="submit" class="buttons" value="Вход">
+        <input type="button" class="buttons" value="Главная страница" onclick="window.location='/'">
+      </form>
+    </div>
+  </body>
+</html>

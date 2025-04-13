@@ -1,29 +1,55 @@
 package server
 
 import (
+	"backend/internal/types"
 	"log"
 	"net/http"
+	"strings"
 	"text/template"
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("./static/home.html"))
-
-	username, err := getUsernameFromCookies(r)
+	tmpl := template.Must(template.New("home.html").Funcs(template.FuncMap{
+		"contains": contains,
+	}).ParseFiles("./static/home.html"))
+	// Получаем данные и ошибки из cookies
+	formData, err := getFormDataFromCookies(r)
 	if err != nil {
 		log.Println(err)
-	} else if username == "" {
-		removeUsernameFromCookies(w)
 	}
+	date := strings.Split(formData.Date, "T")
+	formData.Date = date[0]
+	log.Println(formData.Fio)
 
-	loginError, _ := getLoginErrorFromCookies(r)
-	removeLoginErrorFromCookies(w)
+	formErrors, err := getFormErrorsFromCookies(r) // структура ошибок либо nil
+	if err != nil {
+		log.Println(formErrors)
+		log.Println(err)
+	}
+	success := getSuccessFromCookies(r)
 
+	username, _ := getUsernameFromCookies(r)
+	password, err := getPasswordFromCookies(r)
+	if err == nil {
+		removePasswordFromCookies(w)
+	}
+	// Удаляем cookies после их использования в случае ошибки
+	//if !(success) {
+	//	clearCookies(w)
+	//}
+
+	// Рендерим шаблон с данными
 	tmpl.Execute(w, struct {
-		Username   string
-		LoginError string
+		Data     types.Form
+		Errors   types.FormErrors
+		Success  bool
+		Username string
+		Password string
 	}{
-		Username:   username,
-		LoginError: loginError,
+		Data:     formData,
+		Errors:   formErrors,
+		Success:  success,
+		Username: username,
+		Password: password,
 	})
 }

@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -47,6 +50,8 @@ func validateJwt(tokenStr string) (*Claims, error) {
 }
 
 func login(w http.ResponseWriter, user types.User) error {
+	log.SetPrefix("LOGIN ")
+
 	if err := database.CheckUser(&user); err != nil {
 		//http.Error(w, `{"error":"ОШИБКО ЧЕК ЮЗЕР: `+err.Error()+`"}`, http.StatusBadGateway)
 		setLoginErrorCookie(w, err.Error())
@@ -56,7 +61,6 @@ func login(w http.ResponseWriter, user types.User) error {
 	key, err := newJwt(user.Username)
 	if err != nil {
 		http.Error(w, `{"error": "Ошибка создания ключа"}`, http.StatusBadGateway)
-		log.Panic("ошибка создания ключа", err)
 		return err
 	}
 
@@ -72,13 +76,13 @@ func login(w http.ResponseWriter, user types.User) error {
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
+	var user types.User
+
+	if err := parseLoginRequest(r, &user); err != nil {
+		http.Error(w, `{"error": "Ошибка парсинга формы "`+err.Error()+`}`, http.StatusBadGateway)
 		return
 	}
 
-	var user types.User
-	parseLoginForm(&user, r)
 	if err := login(w, user); err != nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -87,34 +91,75 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	form, err := database.GetForm(user.Username)
 	if err != nil {
 		http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
-		clearCookies(w)
 		return
 	}
 	form_json, _ := json.Marshal(form)
 	setUsernameCookie(w, user.Username)
 	setFormDataCookie(w, form_json)
 	setSuccessCookie(w)
-	http.Redirect(w, r, "/form", http.StatusFound)
+	http.Redirect(w, r, "/profile", http.StatusFound)
 }
 
-func parseLoginForm(pUser *types.User, r *http.Request) error {
-	if !(r.Form.Has("Username") && r.Form.Has("Password")) {
-		return errors.New("invalid login_form")
+func parseLoginRequest(r *http.Request, pUser *types.User) error {
+	// Определяем Content-Type
+	contentType := r.Header.Get("Content-Type")
+
+	// Парсим JSON
+	if strings.Contains(contentType, "application/json") {
+		if err := json.NewDecoder(r.Body).Decode(pUser); err != nil {
+			return errors.New("invalid JSON format")
+		}
+		if len(pUser.Username) == 0 || len(pUser.Password) == 0 {
+			return errors.New("username and password are required")
+		}
+		return validateLoginData(pUser)
 	}
-	pUser.Username = r.Form.Get("Username")
-	pUser.Password = r.Form.Get("Password")
+
+	// Парсим форму
+	if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		if err := r.ParseForm(); err != nil {
+			return errors.New("failed to parse form")
+		}
+
+		if len(r.Form["Username"]) == 0 || len(r.Form["Password"]) == 0 {
+			return errors.New("username and password are required")
+		}
+
+		pUser.Username = strings.TrimSpace(r.Form["Username"][0])
+		pUser.Password = os.Getenv("SALT") + strings.TrimSpace(r.Form["Password"][0])
+		return validateLoginData(pUser)
+	}
+
+	return errors.New("unsupported content type")
+}
+
+func validateLoginData(pUser *types.User) error {
+	l, err := regexp.Compile(`^FormUser_[0-9]{1,}$`)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	p, err := regexp.Compile(`^[a-zA-z0-9_]{0,}$`)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	if !l.MatchString(pUser.Username) || !p.MatchString(pUser.Password) {
+		return errors.New("username or password invalid")
+	}
+
 	return nil
 }
 
 func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tokenStr, err := r.Cookie("key")
+		tokenStr, err := getJWtFromCookies(r)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		claims, err := validateJwt(tokenStr.Value)
+		claims, err := validateJwt(tokenStr)
 		if err != nil {
 			http.SetCookie(w, &http.Cookie{
 				Name:     "key",
@@ -127,10 +172,6 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		form, err := database.GetForm(claims.Username)
 		if err != nil {
 			http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
-			clearCookies(w)
-			removeJwtFromCookies(w)
-			removeUsernameFromCookies(w)
-			removeUsernameFromCookies(w)
 			next.ServeHTTP(w, r)
 			return
 		}

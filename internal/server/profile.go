@@ -18,11 +18,35 @@ func contains(list []int, value int) bool {
 }
 
 // render и отправка html клиенту
-func formHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.New("form.html").Funcs(template.FuncMap{
-		"contains": contains,
-	}).ParseFiles("./static/form.html"))
+func profileHandler(w http.ResponseWriter, r *http.Request) {
 
+	var tmpl *template.Template
+	_, err := getUsernameFromCookies(r)
+	if err != nil {
+		tmpl = template.Must(template.New("profileLogin.html").ParseFiles("./static/profileLogin.html"))
+
+		username, err := getUsernameFromCookies(r)
+		if err != nil {
+			log.Println(" getUsernameFromCookies" + err.Error())
+		} else if username == "" {
+			removeUsernameFromCookies(w)
+		}
+
+		loginError, _ := getLoginErrorFromCookies(r)
+		removeLoginErrorFromCookies(w)
+
+		tmpl.Execute(w, struct {
+			Username   string
+			LoginError string
+		}{
+			Username:   username,
+			LoginError: loginError,
+		})
+		return
+	}
+	tmpl = template.Must(template.New("profile.html").Funcs(template.FuncMap{
+		"contains": contains,
+	}).ParseFiles("./static/profile.html"))
 	// Получаем данные и ошибки из cookies
 	formData, err := getFormDataFromCookies(r)
 	if err != nil {
@@ -35,7 +59,7 @@ func formHandler(w http.ResponseWriter, r *http.Request) {
 	formErrors, err := getFormErrorsFromCookies(r) // структура ошибок либо nil
 	if err != nil {
 		log.Println(formErrors)
-		log.Println(err)
+		log.Println("getFormErrorsFromCookies" + err.Error())
 	}
 	success := getSuccessFromCookies(r)
 
@@ -45,9 +69,9 @@ func formHandler(w http.ResponseWriter, r *http.Request) {
 		removePasswordFromCookies(w)
 	}
 	// Удаляем cookies после их использования в случае ошибки
-	if !(success) {
-		clearCookies(w)
-	}
+	//if !(success) {
+	//	clearCookies(w)
+	//}
 
 	// Рендерим шаблон с данными
 	tmpl.Execute(w, struct {

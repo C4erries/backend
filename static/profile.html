@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Oswald:wght@200..700&display=swap" rel="stylesheet">
+    <script src="static/forma.js" defer></script>
+    <link rel="stylesheet" href="static/profilestyle.css">
+    <title> Project profile </title>
+  </head>
+
+  <!-- Фон взят из открытой галереи: https://projects.verou.me/css3patterns/-->
+  <body class="body">
+    <div class="midblocks">
+      <form id="forma" method="put" action="/process">
+        <h1 class="midheader">Добро пожаловать, <br> {{ .Username}}</h1>
+        <br>
+        <h2 class="midheader">Ваши данные</h2>
+        <!--
+        {{ if .Success }}
+          <div class="success">Данные успешно сохранены!
+            {{ if .Password }}
+            <p>
+            Ваше имя пользователя: {{ .Username }}
+           </p>
+           <p>
+            Ваш пароль: {{ .Password }}
+            </p>
+            {{ end }}
+          </div>
+        {{ end }}
+
+        {{ if not .Success }}
+        {{ if or .Errors.Tel .Errors.Fio .Errors.Email .Errors.Date .Errors.Gender .Errors.Favlangs .Errors.Familiar .Errors.Bio}}
+            <div class="error">
+                <h3>Ошибки заполнения формы:</h3>
+                <ul>
+                    {{ if .Errors.Tel }}<li>Телефон: Поле должно содержать номер телефона в формате +XXXXXXXXXXX; допустимы только цифры.</li>{{ end }}
+                    {{ if .Errors.Fio }}<li>Имя: Поле должно содержать полное ФИО (фамилия, имя, отчество) на кириллице, 
+                      состоящее минимум из трех слов, разделенных пробелами; допустимы только буквы(например, Иванов Иван Иванович).</li>{{ end }}
+                    {{ if .Errors.Email }}<li>Email:  Поле должно содержать корректный адрес электронной почты в формате example@domain.com; допустимы буквы, цифры, точки, дефисы и символ @.</li>{{ end }}
+                    {{ if .Errors.Date }}<li>Дата рождения: Поле должно содержать дату в формате ГГГГ-ММ-ДД;</li>{{ end }}
+                    {{ if .Errors.Gender }}<li>Пол: Поле обязательно для выбора; выберите один из вариантов: "М" (мужской) или "Ж" (женский).</li>{{ end }}
+                    {{ if .Errors.Favlangs }}<li>Любимый язык: Поле должно содержать хотя бы один выбранный язык программирования; можно выбрать несколько вариантов из списка.</li>{{ end }}
+                    {{ if .Errors.Bio }}<li>Биография: Допустимы латинские и кириллические буквы, цифры, пробельные символы и символы ';,.:-!?"</li>{{ end }}
+                    {{ if .Errors.Familiar }}<li>Контракт: Поле обязательно для подтверждения; поставьте галочку, чтобы подтвердить ознакомление с контрактом.</li>{{ end }}
+                </ul>
+            </div>
+                {{ end }}
+        {{ end }}
+
+        <div id="errContainer"></div>
+        <div id="form-loader" class="loader" style="visibility: hidden"></div>
+        -->
+        <label>
+          Фио:
+          <input name="Fio" class="{{ if and .Errors .Errors.Fio }} cookie-error-group {{end}}"  value="{{.Data.Fio}}">
+          {{ if and .Errors .Errors.Fio }} <div class="cookie-error-description">Допустимы только буквы кириллицы и латиницы (например, Иванов Иван Иванович).</div> {{end}}
+        </label>
+
+        <label>
+          Номер телефона:
+          <input name="Tel" class="{{ if and .Errors .Errors.Tel }} cookie-error-group {{end}}"
+            type="tel"
+            value="{{.Data.Tel}}">
+            {{ if and .Errors .Errors.Tel }} <div class="cookie-error-description">Номер телефона указывается в формате +XXXXXXXXXXX; допустимы только цифры.</div> {{end}}
+        </label>
+
+        <label>
+          Эл. почта:
+          <input name="Email" class="{{ if and .Errors .Errors.Email }} cookie-error-group {{end}}"
+            type="email"
+            placeholder="user@example.org" value="{{.Data.Email}}">
+            {{ if and .Errors .Errors.Email }} <div class="cookie-error-description">Формат адреса: example@domain.com; допустимы буквы, цифры, точки, дефисы и символ @.</div> {{end}}
+        </label>
+
+        <label>
+          Дата рождения:
+          <input name="Date" class="{{ if and .Errors .Errors.Date }} cookie-error-group {{end}}"
+            type="date" value="{{.Data.Date}}">
+            {{ if and .Errors .Errors.Date }} <div class="cookie-error-description">Поле должно содержать дату в формате ГГГГ-ММ-ДД; </div> {{end}}
+        </label>
+
+        <div class="{{ if and .Errors .Errors.Gender }} cookie-error-group {{end}}">
+            <label> Пол: <br> <input type="radio"
+            name="Gender" value="Male" {{if eq .Data.Gender "Male"}}checked{{end}}>
+            Мужчина</label>
+            <br><br>
+            <label><input type="radio"
+            name="Gender" value="Female" {{if eq .Data.Gender "Female"}}checked{{end}}>
+            Женщина</label>
+        </div>
+        {{ if and .Errors .Errors.Gender }} <div class="cookie-error-description">Поле обязательно для выбора; выберите один из вариантов </div> {{end}}
+          
+        <label>
+          Любимый язык программирования:
+          
+          <select name="Favlangs" class="{{ if and .Errors .Errors.Favlnags }} cookie-error-group {{end}}"
+              multiple="multiple">
+            <option value="1" {{if contains .Data.Favlangs 1}}selected="selected"{{end}}>Prolog</option>
+            <option value="2" {{if contains .Data.Favlangs 2}}selected="selected"{{end}}>JavaScript</option>
+            <option value="3" {{if contains .Data.Favlangs 3}}selected="selected"{{end}}>PHP</option>
+            <option value="4" {{if contains .Data.Favlangs 4}}selected="selected"{{end}}>C++</option>
+            <option value="5" {{if contains .Data.Favlangs 5}}selected="selected"{{end}}>Java</option>
+            <option value="6" {{if contains .Data.Favlangs 6}}selected="selected"{{end}}>C#</option>
+            <option value="7" {{if contains .Data.Favlangs 7}}selected="selected"{{end}}>Haskell</option>
+            <option value="8" {{if contains .Data.Favlangs 8}}selected="selected"{{end}}>Clojure</option>
+            <option value="9" {{if contains .Data.Favlangs 9}}selected="selected"{{end}}>Scala</option>
+            <option value="10" {{if contains .Data.Favlangs 10}}selected="selected"{{end}}>Pascal</option>
+            <option value="11" {{if contains .Data.Favlangs 11}}selected="selected"{{end}}>Python</option>
+          </select>
+          {{ if and .Errors .Errors.Favlangs }} <div class="cookie-error-description">Поле должно содержать хотя бы один выбранный язык программирования; можно выбрать несколько вариантов из списка</div> {{end}}
+        </label>
+
+        <label for="Bio">Расскажите о себе:</label>
+      <textarea id="Bio" name="Bio" class="{{ if and .Errors .Errors.Bio }} cookie-error-group {{end}}" placeholder="Биография">{{.Data.Bio}}</textarea>
+      {{ if and .Errors .Errors.Bio }} <div class="cookie-error-description">Допустимы латинские и кириллические буквы, цифры, пробельные символы и символы ";,.:-!?</div> {{end}}
+
+        <label class="{{ if and .Errors .Errors.Familiar }} cookie-error-group {{end}}"><input type="checkbox"
+          name="Familiar" >
+          С контрактом ознакомлен(а)</label>
+          {{ if and .Errors .Errors.Familiar }} <div class="cookie-error-description">Поле обязательно для подтверждения; поставьте галочку, чтобы подтвердить ознакомление с условиями</div> {{end}}
+        <input type="submit" class="buttons" value="Изменить данные" >
+        <input type="button" class="buttons" value="Выйти" onclick="window.location='./'">
+        <input type="button" class="buttons" value="Главная страница" onclick="window.location='./'">
+      </form>
+      
+    </div>
+  </body>
+</html>
