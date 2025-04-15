@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"os"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -33,13 +34,13 @@ type FormErrors struct {
 }
 
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(os.Getenv("SALT")+password), 14)
 	return string(bytes), err
 }
 
 // if ok return nil; else error
 func CheckPassword(hash []byte, password string) error {
-	err := bcrypt.CompareHashAndPassword(hash, []byte(password))
+	err := bcrypt.CompareHashAndPassword(hash, []byte(os.Getenv("SALT")+password))
 	if err != nil {
 		return errors.New("username or password invalid")
 	}

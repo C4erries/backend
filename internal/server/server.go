@@ -16,13 +16,12 @@ func Start() {
 
 	mux.HandleFunc("/", homeHandler)
 	mux.HandleFunc("/profile", profileHandler)
-	mux.HandleFunc("/process", processHandler)
+
 	mux.HandleFunc("/process/profile", processProfileHandler)
 	mux.HandleFunc("/process/register", processRegisterHandler)
 	mux.HandleFunc("/login", loginHandler)
 	mux.HandleFunc("/exit", exitHandler)
-
-	handler := loggingMiddleware(headersMiddleware(mux))
+	handler := authMiddleware(loggingMiddleware(headersMiddleware(mux)))
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 	log.Println("starting server..")
@@ -43,7 +42,8 @@ func loggingMiddleware(next http.Handler) http.Handler {
 func headersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		next.ServeHTTP(w, r)
 	})
 }

@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,9 +23,17 @@ type JsonForm struct {
 
 func castToJsonForm(values url.Values) *JsonForm {
 	var favlangs []int
-	for _, value := range values["Favlangs"] {
-		num, _ := strconv.Atoi(value)
-		favlangs = append(favlangs, num)
+	if values.Has("Favlangs") {
+		for _, value := range values["Favlangs"] {
+			num, _ := strconv.Atoi(value)
+			favlangs = append(favlangs, num)
+		}
+	}
+	if !values.Has("Gender") {
+		values["Gender"] = []string{""}
+	}
+	if !values.Has("Familiar") {
+		values["Familiar"] = []string{""}
 	}
 	return &JsonForm{
 		types.Form{
@@ -42,6 +49,7 @@ func castToJsonForm(values url.Values) *JsonForm {
 }
 
 func processRequestParser(r *http.Request) (unvalidatedForm *JsonForm, err error) {
+
 	// Определяем Content-Type
 	contentType := r.Header.Get("Content-Type")
 
@@ -65,49 +73,56 @@ func processRequestParser(r *http.Request) (unvalidatedForm *JsonForm, err error
 }
 
 func processRegisterHandler(w http.ResponseWriter, r *http.Request) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "RegisterHandler ")
+	defer log.SetPrefix(prevPref)
+
 	if r.Method != http.MethodPost {
 		log.Print("Wrong HTTP method: " + r.Method)
 		http.Error(w, `{"error": "Ошибка метода запроса. Allowed Methods: `+http.MethodPost+`"}`, http.StatusMethodNotAllowed)
 		return
 	}
-	jwt, err := getJWtFromCookies(r)
+
+	_, err := getJwtFromCookies(r)
 	if err == nil {
-		log.Print("You are registrated yet123:" + jwt)
-		username, err := getUsernameFromCookies(r)
-		if err == nil {
-			log.Println(username)
-		}
-		http.Redirect(w, r, "/profile", http.StatusSeeOther)
+		log.Print("You are registrated yet!")
+		RedirectToProfile(w, r)
 		return
 	}
+
 	unvalidatedForm, err := processRequestParser(r)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
 		return
 	}
-	user := newForm(w, unvalidatedForm)
+
+	user, err := newForm(w, unvalidatedForm)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	if err = login(w, user); err != nil {
 		log.Println("Error from login after newForm " + err.Error())
 		//http.Error(w, `{"error": "Ошибка регистрации: `+err.Error()+`"}`, http.StatusBadGateway)
 		return
 	}
+
 	log.Println("Go to profile after login...")
-	http.Redirect(w, r, "/profile", http.StatusFound)
-	return
+	RedirectToProfile(w, r)
 }
 
 func processProfileHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		log.Print("Wrong HTTP method: " + r.Method)
-		http.Error(w, `{"error": "Ошибка метода запроса. Allowed Methods: `+http.MethodPut+`"}`, http.StatusMethodNotAllowed)
-		return
-	}
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "ProcessProfileHandler ")
+	defer log.SetPrefix(prevPref)
+
 	username, err := getUsernameFromCookies(r)
 	if err != nil {
 		log.Print("not logged in")
 		log.Print(err)
-		http.Redirect(w, r, "/", http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusUnauthorized)
 		return
 	}
 
@@ -118,12 +133,16 @@ func processProfileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	editForm(w, username, unvalidatedForm)
-	http.Redirect(w, r, "/profile", http.StatusFound)
+	RedirectToProfile(w, r)
 }
 
-func newForm(w http.ResponseWriter, unvalidatedForm *JsonForm) types.User {
-	lastusername, err := database.GetLastUsername()
+func newForm(w http.ResponseWriter, unvalidatedForm *JsonForm) (types.User, error) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "NewForm ")
+	defer log.SetPrefix(prevPref)
+
 	var newusername string
+	lastusername, err := database.GetLastUsername()
 	if err != nil {
 		newusername = "FormUser_1"
 	} else {
@@ -139,8 +158,7 @@ func newForm(w http.ResponseWriter, unvalidatedForm *JsonForm) types.User {
 	if err != nil {
 		log.Print(err)
 	}
-	user.Password, err = types.HashPassword(os.Getenv("SALT") + password)
-
+	user.Password, err = types.HashPassword(password)
 	if err != nil {
 		log.Print(err)
 	}
@@ -153,7 +171,7 @@ func newForm(w http.ResponseWriter, unvalidatedForm *JsonForm) types.User {
 		log.Print(err)
 
 		errors_json, _ := json.Marshal(formerrors)
-		//clearCookies(w)
+		clearCookies(w)
 		setErrorsCookie(w, errors_json)
 	} else {
 		setSuccessCookie(w)
@@ -164,15 +182,18 @@ func newForm(w http.ResponseWriter, unvalidatedForm *JsonForm) types.User {
 		}
 		setUsernameCookie(w, newusername)
 		setPasswordCookie(w, password)
-		//login(w, types.User{Username: newusername, Password: password})
 	}
 
 	form_json, _ := json.Marshal(f)
 	setFormDataCookie(w, form_json)
-	return types.User{Username: newusername, Password: password}
+	return types.User{Username: newusername, Password: password}, err
 }
 
 func editForm(w http.ResponseWriter, username string, unvalidatedForm *JsonForm) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "EditForm ")
+	defer log.SetPrefix(prevPref)
+
 	var formerrors types.FormErrors
 	var f types.Form
 	err := validate(&f, unvalidatedForm, &formerrors)
@@ -180,11 +201,11 @@ func editForm(w http.ResponseWriter, username string, unvalidatedForm *JsonForm)
 		log.Print(err)
 
 		errors_json, _ := json.Marshal(formerrors)
-		//clearCookies(w)
+
 		setErrorsCookie(w, errors_json)
 	} else {
 		setSuccessCookie(w)
-
+		clearErrorCookies(w)
 		err := database.UpdateForm(&f, username)
 		if err != nil {
 			log.Print(err)
@@ -196,6 +217,10 @@ func editForm(w http.ResponseWriter, username string, unvalidatedForm *JsonForm)
 }
 
 func validate(f *types.Form, form *JsonForm, formerrors *types.FormErrors) (err error) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "Validate ")
+	defer log.SetPrefix(prevPref)
+
 	var finalres bool = true
 	var check bool = false
 	var gen bool = false
@@ -336,90 +361,4 @@ func generatePassword(length int) (string, error) {
 	}
 
 	return string(password), nil
-}
-
-func processHandler(w http.ResponseWriter, r *http.Request) {
-	username, err := getUsernameFromCookies(r)
-	if err != nil {
-		lastusername, err := database.GetLastUsername()
-		var newusername string
-		if err != nil {
-			newusername = "FormUser_1"
-		} else {
-			usl := strings.Split(lastusername, "_")
-			lastnum, _ := strconv.Atoi(usl[1])
-			lastnumstr := strconv.Itoa(lastnum + 1)
-			newusername = "FormUser_" + lastnumstr
-		}
-
-		user := types.User{}
-		user.Username = newusername
-		password, err := generatePassword(10)
-		if err != nil {
-			log.Print(err)
-		}
-		user.Password, err = types.HashPassword(os.Getenv("SALT") + password)
-		if err != nil {
-			log.Print(err)
-		}
-
-		//Здесь password нужно отправлять пользователю в ответе, причём ровно один раз
-		var formerrors types.FormErrors
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
-			return
-		}
-
-		var f types.Form
-		err = validate(&f, castToJsonForm(r.Form), &formerrors)
-		if err != nil {
-			log.Print(err)
-
-			errors_json, _ := json.Marshal(formerrors)
-			//clearCookies(w)
-			setErrorsCookie(w, errors_json)
-		} else {
-			setSuccessCookie(w)
-
-			err := database.WriteForm(&f, &user)
-			if err != nil {
-				log.Print(err)
-			}
-			setUsernameCookie(w, newusername)
-			setPasswordCookie(w, password)
-			login(w, types.User{Username: newusername, Password: password})
-		}
-
-		form_json, _ := json.Marshal(f)
-		setFormDataCookie(w, form_json)
-		http.Redirect(w, r, "/profile", http.StatusSeeOther)
-
-	} else {
-		var formerrors types.FormErrors
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, `{"error": "Ошибка парсинга формы"}`, http.StatusBadGateway)
-			return
-		}
-
-		var f types.Form
-		err = validate(&f, castToJsonForm(r.Form), &formerrors)
-		if err != nil {
-			log.Print(err)
-
-			errors_json, _ := json.Marshal(formerrors)
-			//clearCookies(w)
-			setErrorsCookie(w, errors_json)
-		} else {
-			setSuccessCookie(w)
-
-			err := database.UpdateForm(&f, username)
-			if err != nil {
-				log.Print(err)
-			}
-		}
-
-		form_json, _ := json.Marshal(f)
-		setFormDataCookie(w, form_json)
-		http.Redirect(w, r, "/form", http.StatusSeeOther)
-	}
 }

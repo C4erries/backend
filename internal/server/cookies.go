@@ -9,6 +9,16 @@ import (
 	"time"
 )
 
+func clearErrorCookies(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Path:     "/",
+		Name:     "errors",
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
+}
+
 func clearCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Path:     "/",
@@ -124,7 +134,7 @@ func getUsernameFromCookies(r *http.Request) (string, error) {
 	return name.Value, nil
 }
 
-func getJWtFromCookies(r *http.Request) (string, error) {
+func getJwtFromCookies(r *http.Request) (string, error) {
 	jwt, err := r.Cookie("key")
 	if err != nil {
 		return "", err
@@ -209,6 +219,16 @@ func setPasswordCookie(w http.ResponseWriter, password string) {
 		Name:     "password",
 		Value:    password,
 		Expires:  time.Now().AddDate(1, 0, 0), // 1 year
+		HttpOnly: true,
+	})
+}
+
+func setJwtCookie(w http.ResponseWriter, key string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "key",
+		Path:     "/",
+		Value:    key,
+		Expires:  time.Now().AddDate(0, 0, 7),
 		HttpOnly: true,
 	})
 }

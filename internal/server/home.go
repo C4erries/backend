@@ -9,23 +9,19 @@ import (
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + " HomeHandler   ")
+	defer log.SetPrefix(prevPref)
 	tmpl := template.Must(template.New("home.html").Funcs(template.FuncMap{
 		"contains": contains,
 	}).ParseFiles("./static/home.html"))
 	// Получаем данные и ошибки из cookies
-	formData, err := getFormDataFromCookies(r)
-	if err != nil {
-		log.Println(err)
-	}
+	formData, _ := getFormDataFromCookies(r)
+
 	date := strings.Split(formData.Date, "T")
 	formData.Date = date[0]
-	log.Println(formData.Fio)
 
-	formErrors, err := getFormErrorsFromCookies(r) // структура ошибок либо nil
-	if err != nil {
-		log.Println(formErrors)
-		log.Println(err)
-	}
+	formErrors, _ := getFormErrorsFromCookies(r) // структура ошибок либо nil
 	success := getSuccessFromCookies(r)
 
 	username, _ := getUsernameFromCookies(r)
@@ -34,9 +30,9 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		removePasswordFromCookies(w)
 	}
 	// Удаляем cookies после их использования в случае ошибки
-	//if !(success) {
-	//	clearCookies(w)
-	//}
+	if !(success) {
+		clearCookies(w)
+	}
 
 	// Рендерим шаблон с данными
 	tmpl.Execute(w, struct {

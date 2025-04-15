@@ -27,15 +27,13 @@ forma.addEventListener("submit", (e) => {
     
     const validationResult = validate(formData);
     if (validationResult) {
-        // Показ ошибок
-        
+        // Отображение ошибок
         showErrors(validationResult);
     } else {
         // Отправка формы
 
         // Преобразуем FormData в обычный объект
         const formObject = Object.fromEntries(formData.entries());
-        console.log(formObject)
         formObject.Favlangs= []
         formData.getAll("Favlangs").forEach(val => formObject.Favlangs.push(parseInt(val)))
         
@@ -43,6 +41,7 @@ forma.addEventListener("submit", (e) => {
         console.log(formObject)
 
         //здесь могла быть ваша -р-е-к-л-а-м-а- обработка ответа
+        console.log(`Method:${e.target.method} to ${e.target.action} with data: `, formObject)
         fetch(e.target.action, {
             method: e.target.method,
             headers: {
@@ -50,8 +49,9 @@ forma.addEventListener("submit", (e) => {
             },
             body: JSON.stringify(formObject),
         }).then(res => {
-            if (res.redirected) {
-              window.location.href = res.url;
+            console.log(res)
+            if(res.redirected){
+                window.location.href = res.url;
             }
           });
     }
@@ -98,7 +98,6 @@ const showErrors = (errors) => {
 
 const validate = (data) => {
     const errors = {};
-    console.log(data)
     // Валидация Fio
     if (data.get("Fio")) {
         const fioRegex = /^[A-Za-zА-Яа-яЁё\s]{1,150}$/;

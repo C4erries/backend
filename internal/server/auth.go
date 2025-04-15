@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -16,7 +15,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtKey = []byte("MABALLS")
+var jwtKey = []byte("4ijk")
 
 type Claims struct {
 	Username string `json:"Username"`
@@ -24,7 +23,7 @@ type Claims struct {
 }
 
 func newJwt(username string) (string, error) {
-	expirationTime := time.Now().AddDate(0, 0, 7).Add(10 * time.Minute) // хайп ?
+	expirationTime := time.Now().AddDate(0, 0, 7).Add(10 * time.Minute)
 	claims := &Claims{
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -44,17 +43,19 @@ func validateJwt(tokenStr string) (*Claims, error) {
 	}
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
-		return nil, fmt.Errorf("ИНВАЛИД ТОКЕН")
+		return nil, fmt.Errorf("invalid token")
 	}
 	return claims, nil
 }
 
 func login(w http.ResponseWriter, user types.User) error {
-	log.SetPrefix("LOGIN ")
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "LOGIN ")
+	defer log.SetPrefix(prevPref)
 
 	if err := database.CheckUser(&user); err != nil {
 		//http.Error(w, `{"error":"ОШИБКО ЧЕК ЮЗЕР: `+err.Error()+`"}`, http.StatusBadGateway)
-		setLoginErrorCookie(w, err.Error())
+		setLoginErrorCookie(w, "Не верный логин или пароль \n (invalid username or password) \n (登录名或密码无效)")
 		return err
 	}
 
@@ -65,39 +66,39 @@ func login(w http.ResponseWriter, user types.User) error {
 	}
 
 	//заливаем в куки клиенту jwt ключ
-	http.SetCookie(w, &http.Cookie{
-		Name:     "key",
-		Value:    key,
-		Expires:  time.Now().AddDate(0, 0, 7),
-		HttpOnly: true,
-	})
+	setJwtCookie(w, key)
 	return nil
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "LoginHandler ")
+	defer log.SetPrefix(prevPref)
 	var user types.User
 
 	if err := parseLoginRequest(r, &user); err != nil {
-		http.Error(w, `{"error": "Ошибка парсинга формы "`+err.Error()+`}`, http.StatusBadGateway)
+		setLoginErrorCookie(w, err.Error())
+		RedirectToProfile(w, r)
 		return
 	}
 
 	if err := login(w, user); err != nil {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		//установка LoginErrorCookie реализована в login()
+		RedirectToProfile(w, r)
 		return
 	}
 
 	form, err := database.GetForm(user.Username)
 	if err != nil {
-		http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
+		setLoginErrorCookie(w, fmt.Errorf(`ошибка форма не найдена`).Error())
+		RedirectToProfile(w, r)
 		return
 	}
 	form_json, _ := json.Marshal(form)
 	setUsernameCookie(w, user.Username)
 	setFormDataCookie(w, form_json)
 	setSuccessCookie(w)
-	http.Redirect(w, r, "/profile", http.StatusFound)
+	RedirectToProfile(w, r)
 }
 
 func parseLoginRequest(r *http.Request, pUser *types.User) error {
@@ -126,7 +127,7 @@ func parseLoginRequest(r *http.Request, pUser *types.User) error {
 		}
 
 		pUser.Username = strings.TrimSpace(r.Form["Username"][0])
-		pUser.Password = os.Getenv("SALT") + strings.TrimSpace(r.Form["Password"][0])
+		pUser.Password = strings.TrimSpace(r.Form["Password"][0])
 		return validateLoginData(pUser)
 	}
 
@@ -134,6 +135,9 @@ func parseLoginRequest(r *http.Request, pUser *types.User) error {
 }
 
 func validateLoginData(pUser *types.User) error {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "ValidateLoginData")
+	defer log.SetPrefix(prevPref)
 	l, err := regexp.Compile(`^FormUser_[0-9]{1,}$`)
 	if err != nil {
 		log.Print(err)
@@ -151,39 +155,58 @@ func validateLoginData(pUser *types.User) error {
 	return nil
 }
 
-func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		tokenStr, err := getJWtFromCookies(r)
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		prevPref := log.Prefix()
+		log.SetPrefix(prevPref + "AuthMiddleware ")
+		defer log.SetPrefix(prevPref)
+
+		tokenStr, err := getJwtFromCookies(r)
 		if err != nil {
+			log.Println(err)
+			log.SetPrefix(prevPref)
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		claims, err := validateJwt(tokenStr)
 		if err != nil {
-			http.SetCookie(w, &http.Cookie{
-				Name:     "key",
-				Value:    "",
-				MaxAge:   -1,
-				HttpOnly: true,
-			})
-			http.Redirect(w, r, "/", http.StatusBadRequest)
-		}
-		form, err := database.GetForm(claims.Username)
-		if err != nil {
-			http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
+			log.Println(err)
+			removeJwtFromCookies(w)
+			http.Redirect(w, r, "/", http.StatusUnauthorized)
+			log.SetPrefix(prevPref)
 			next.ServeHTTP(w, r)
 			return
 		}
-		form_json, _ := json.Marshal(form)
+		form, err := database.GetForm(claims.Username)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
+			log.SetPrefix(prevPref)
+			next.ServeHTTP(w, r)
+			return
+		}
+		form_json, err := json.Marshal(form)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, `{"error": "Ошибка преобразования формы в json: `+err.Error()+`"}`, http.StatusBadGateway)
+			log.SetPrefix(prevPref)
+			next.ServeHTTP(w, r)
+			return
+		}
 		setUsernameCookie(w, claims.Username)
 		setFormDataCookie(w, form_json)
 		setSuccessCookie(w)
+		log.SetPrefix(prevPref)
 		next.ServeHTTP(w, r)
-	}
+	})
 }
 
 func exitHandler(w http.ResponseWriter, r *http.Request) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "ExitHandler ")
+	defer log.SetPrefix(prevPref)
+
 	clearCookies(w)
 	removeJwtFromCookies(w)
 	removeUsernameFromCookies(w)

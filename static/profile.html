@@ -12,9 +12,10 @@
   <!-- Фон взят из открытой галереи: https://projects.verou.me/css3patterns/-->
   <body class="body">
     <div class="midblocks">
-      <form id="forma" method="put" action="/process">
-        <h1 class="midheader">Добро пожаловать, <br> {{ .Username}}</h1>
+      <form id="forma" method="POST" action="/process/profile">
+        <h1 class="midheader">Добро пожаловать&#128075;, <br> {{ .Username}} &#128519;</h1>
         <br>
+        {{ if .Password }}<h2 class="midheader">Ваш Пароль: {{.Password}} </h2>{{ end }}
         <h2 class="midheader">Ваши данные</h2>
         <!--
         {{ if .Success }}
@@ -95,7 +96,7 @@
         <label>
           Любимый язык программирования:
           
-          <select name="Favlangs" class="{{ if and .Errors .Errors.Favlnags }} cookie-error-group {{end}}"
+          <select name="Favlangs" class="{{ if and .Errors .Errors.Favlangs }} cookie-error-group {{end}}"
               multiple="multiple">
             <option value="1" {{if contains .Data.Favlangs 1}}selected="selected"{{end}}>Prolog</option>
             <option value="2" {{if contains .Data.Favlangs 2}}selected="selected"{{end}}>JavaScript</option>
@@ -121,7 +122,7 @@
           С контрактом ознакомлен(а)</label>
           {{ if and .Errors .Errors.Familiar }} <div class="cookie-error-description">Поле обязательно для подтверждения; поставьте галочку, чтобы подтвердить ознакомление с условиями</div> {{end}}
         <input type="submit" class="buttons" value="Изменить данные" >
-        <input type="button" class="buttons" value="Выйти" onclick="window.location='./'">
+        <input type="button" class="buttons" value="Выйти" onclick="window.location='./exit'">
         <input type="button" class="buttons" value="Главная страница" onclick="window.location='./'">
       </form>
       

@@ -19,6 +19,15 @@ func contains(list []int, value int) bool {
 
 // render и отправка html клиенту
 func profileHandler(w http.ResponseWriter, r *http.Request) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "ProfileHandler ")
+	defer log.SetPrefix(prevPref)
+
+	if r.Method != "GET" {
+		log.Println(r.URL.String() + " Method: " + r.Method + "is Not Allowed here. Allowed Methods: ")
+		http.Error(w, "Method: "+r.Method+"is Not Allowed here. Allowed Methods: "+http.MethodGet, http.StatusMethodNotAllowed)
+		return
+	}
 
 	var tmpl *template.Template
 	_, err := getUsernameFromCookies(r)
@@ -26,9 +35,7 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 		tmpl = template.Must(template.New("profileLogin.html").ParseFiles("./static/profileLogin.html"))
 
 		username, err := getUsernameFromCookies(r)
-		if err != nil {
-			log.Println(" getUsernameFromCookies" + err.Error())
-		} else if username == "" {
+		if err != nil && username == "" {
 			removeUsernameFromCookies(w)
 		}
 
@@ -48,19 +55,13 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 		"contains": contains,
 	}).ParseFiles("./static/profile.html"))
 	// Получаем данные и ошибки из cookies
-	formData, err := getFormDataFromCookies(r)
-	if err != nil {
-		log.Println(err)
-	}
+	formData, _ := getFormDataFromCookies(r)
 	date := strings.Split(formData.Date, "T")
 	formData.Date = date[0]
-	log.Println(formData.Fio)
 
-	formErrors, err := getFormErrorsFromCookies(r) // структура ошибок либо nil
-	if err != nil {
-		log.Println(formErrors)
-		log.Println("getFormErrorsFromCookies" + err.Error())
-	}
+	formErrors, _ := getFormErrorsFromCookies(r) // структура ошибок либо nil
+
+	clearErrorCookies(w)
 	success := getSuccessFromCookies(r)
 
 	username, _ := getUsernameFromCookies(r)
@@ -69,9 +70,9 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 		removePasswordFromCookies(w)
 	}
 	// Удаляем cookies после их использования в случае ошибки
-	//if !(success) {
-	//	clearCookies(w)
-	//}
+	if !(success) {
+		clearCookies(w)
+	}
 
 	// Рендерим шаблон с данными
 	tmpl.Execute(w, struct {
@@ -87,4 +88,13 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 		Username: username,
 		Password: password,
 	})
+}
+func RedirectToProfile(w http.ResponseWriter, r *http.Request) {
+	if strings.Contains(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+		http.Redirect(w, r, "/profile", http.StatusSeeOther)
+		return
+	} else {
+		http.Redirect(w, r, "/profile", http.StatusTemporaryRedirect)
+		return
+	}
 }

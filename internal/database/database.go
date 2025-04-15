@@ -40,7 +40,9 @@ func MustClose() {
 }
 
 func WriteForm(f *types.Form, u *types.User) (err error) {
-
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "WriteForm ")
+	defer log.SetPrefix(prevPref)
 	var insertsql = []string{
 		"INSERT INTO forms ",
 		"(username, fio, tel, email, birth_date, gender, bio) ",
@@ -72,7 +74,9 @@ func WriteForm(f *types.Form, u *types.User) (err error) {
 }
 
 func UpdateForm(f *types.Form, username string) (err error) {
-
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "UpdateForm ")
+	defer log.SetPrefix(prevPref)
 	var updatesql = []string{
 		"UPDATE forms ",
 		"SET fio = $2, tel = $3, email = $4, birth_date = $5, gender = $6, bio = $7 ",
@@ -104,16 +108,19 @@ func UpdateForm(f *types.Form, username string) (err error) {
 }
 
 func CheckUser(u *types.User) (err error) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "CheckUser ")
+	defer log.SetPrefix(prevPref)
 	var dbpassword string
 	err = db.QueryRow("SELECT enc_password FROM userinfo WHERE username=$1", u.Username).Scan(&dbpassword)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return errors.New("USERNAME username or password invalid")
+			return errors.New("username or password invalid")
 		}
 		return err
 	}
 	log.Println(dbpassword, u.Password)
-	if err := types.CheckPassword([]byte(dbpassword), os.Getenv("SALT")+u.Password); err != nil {
+	if err := types.CheckPassword([]byte(dbpassword), u.Password); err != nil {
 		return err
 	}
 
@@ -121,7 +128,9 @@ func CheckUser(u *types.User) (err error) {
 }
 
 func GetForm(username string) (types.Form, error) {
-
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "GetForm ")
+	defer log.SetPrefix(prevPref)
 	var selectsql = []string{
 		"SELECT ",
 		"fio, tel, email, birth_date, gender, bio ",
@@ -155,11 +164,13 @@ func GetForm(username string) (types.Form, error) {
 }
 
 func GetLastUsername() (string, error) {
+	prevPref := log.Prefix()
+	log.SetPrefix(prevPref + "GetLastUsernameForm ")
+	defer log.SetPrefix(prevPref)
 	var username string
-	err := db.QueryRow("SELECT username FROM userinfo ORDER BY username DESC LIMIT 1").Scan(&username)
+	err := db.QueryRow("SELECT username FROM userinfo ORDER BY CAST(SUBSTRING(username FROM '[0-9]+$') as INTEGER) DESC LIMIT 1").Scan(&username)
 	if err != nil {
 		return "", err
 	}
-	log.Println("DATABASE GETLASTUSERNAME" + username)
 	return username, nil
 }

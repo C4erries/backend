@@ -11,8 +11,8 @@
 
   <body class="body">
     <div class="midblocks">
-      {{ if .LoginError }} <div class="error"> {{ .LoginError }} </div> {{ end }}
-      <form id="loginform" method="POST" action="/login">
+      {{ if .LoginError }} <div class="error">  {{ .LoginError }} </div> {{ end }}
+      <form id="loginForm" method="POST" action="/login">
         <label>
             Имя пользователя:
             <input name="Username">
