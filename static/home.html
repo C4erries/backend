@@ -1424,10 +1424,10 @@
                         {{ if .Username }}
                             <form class="form-container">
                                 Здравствуте, {{.Username}}
-                                <div  class="form-group"><button class="btn" type="button" onclick="window.location.href = '/profile'">Изменить данные</button></div>
+                                <div  class="form-group"><a class="btn" type="button" href='/profile'>Изменить данные</a></div>
                                 <br>
                                 Это не вы?
-                                <div  class="form-group"><button class="btn" type="button" onclick="window.location.href = '/exit'">Выйти</button></div>
+                                <div  class="form-group"><a class="btn" type="button" href='/exit'>Выйти</button></div>
                             </form>
                         {{ end }}
                         </div>
