@@ -4,6 +4,14 @@ html{
   -webkit-text-size-adjust: 100%;
 }
 
+.cookie-error-group{
+    background-color: #8b3030 !important;
+  }
+  
+  .cookie-error-description{
+    color: #ff5656;
+  }
+
 .buttons{
     font-family: Montserrat, sans-serif;
     background: #f14d34;

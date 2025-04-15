@@ -117,13 +117,19 @@
       <textarea id="Bio" name="Bio" class="{{ if and .Errors .Errors.Bio }} cookie-error-group {{end}}" placeholder="Биография">{{.Data.Bio}}</textarea>
       {{ if and .Errors .Errors.Bio }} <div class="cookie-error-description">Допустимы латинские и кириллические буквы, цифры, пробельные символы и символы ";,.:-!?</div> {{end}}
 
-        <label class="{{ if and .Errors .Errors.Familiar }} cookie-error-group {{end}}"><input type="checkbox"
-          name="Familiar" >
+        <label style="display: none;" class="{{ if and .Errors .Errors.Familiar }} cookie-error-group {{end}}"><input type="checkbox"
+          name="Familiar" checked>
           С контрактом ознакомлен(а)</label>
           {{ if and .Errors .Errors.Familiar }} <div class="cookie-error-description">Поле обязательно для подтверждения; поставьте галочку, чтобы подтвердить ознакомление с условиями</div> {{end}}
         <input type="submit" class="buttons" value="Изменить данные" >
-        <input type="button" class="buttons" value="Выйти" onclick="window.location='./exit'">
-        <input type="button" class="buttons" value="Главная страница" onclick="window.location='./'">
+        
+        <form action="/exit">
+          <input type="submit" class="buttons" value="Выйти">
+        </form>
+        <form action="/">
+          <input type="submit" class="buttons" value="Главная страница">
+        </form>
+    
       </form>
       
     </div>

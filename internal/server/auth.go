@@ -160,12 +160,12 @@ func authMiddleware(next http.Handler) http.Handler {
 		prevPref := log.Prefix()
 		log.SetPrefix(prevPref + "AuthMiddleware ")
 		defer log.SetPrefix(prevPref)
+		defer next.ServeHTTP(w, r)
 
 		tokenStr, err := getJwtFromCookies(r)
 		if err != nil {
 			log.Println(err)
 			log.SetPrefix(prevPref)
-			next.ServeHTTP(w, r)
 			return
 		}
 
@@ -173,32 +173,35 @@ func authMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			log.Println(err)
 			removeJwtFromCookies(w)
-			http.Redirect(w, r, "/", http.StatusUnauthorized)
 			log.SetPrefix(prevPref)
-			next.ServeHTTP(w, r)
+			http.Redirect(w, r, "/", http.StatusUnauthorized)
 			return
 		}
 		form, err := database.GetForm(claims.Username)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
 			log.SetPrefix(prevPref)
-			next.ServeHTTP(w, r)
+			http.Error(w, `{"error": "Ошибка форма не найдена: `+err.Error()+`"}`, http.StatusBadGateway)
 			return
 		}
 		form_json, err := json.Marshal(form)
 		if err != nil {
 			log.Println(err)
-			http.Error(w, `{"error": "Ошибка преобразования формы в json: `+err.Error()+`"}`, http.StatusBadGateway)
 			log.SetPrefix(prevPref)
-			next.ServeHTTP(w, r)
+			http.Error(w, `{"error": "Ошибка преобразования формы в json: `+err.Error()+`"}`, http.StatusBadGateway)
 			return
 		}
+		_, err = getUsernameFromCookies(r)
 		setUsernameCookie(w, claims.Username)
 		setFormDataCookie(w, form_json)
 		setSuccessCookie(w)
-		log.SetPrefix(prevPref)
-		next.ServeHTTP(w, r)
+		if err != nil {
+			if strings.Contains(r.URL.Path, "/profile") && strings.Contains(r.URL.Path, "/process") {
+				RedirectToProfile(w, r)
+			} else {
+				http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
+			}
+		}
 	})
 }
 

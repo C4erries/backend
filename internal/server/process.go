@@ -100,12 +100,13 @@ func processRegisterHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := newForm(w, unvalidatedForm)
 	if err != nil {
 		log.Println(err)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	if err = login(w, user); err != nil {
 		log.Println("Error from login after newForm " + err.Error())
-		//http.Error(w, `{"error": "Ошибка регистрации: `+err.Error()+`"}`, http.StatusBadGateway)
+		http.Error(w, `{"error": "Ошибка регистрации: `+err.Error()+`"}`, http.StatusBadGateway)
 		return
 	}
 
@@ -319,7 +320,10 @@ func validate(f *types.Form, form *JsonForm, formerrors *types.FormErrors) (err 
 
 	{
 		for _, p := range form.Favlangs {
-
+			if len(form.Favlangs) == 0 {
+				finalres = false
+				formerrors.Favlangs = "Invalid favourite langs"
+			}
 			if p < 1 || p > 11 {
 				finalres = false
 				formerrors.Favlangs = "Invalid favourite langs"

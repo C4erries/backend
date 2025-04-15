@@ -11,7 +11,7 @@
 
   <body class="body">
     <div class="midblocks">
-      {{ if .LoginError }} <div class="error">  {{ .LoginError }} </div> {{ end }}
+      {{ if .LoginError }} <div class="error"> Неправильный логин или пароль (Invalid username or password) (用户名或密码无效) </div> {{ end }}
       <form id="loginForm" method="POST" action="/login">
         <label>
             Имя пользователя:
@@ -22,7 +22,9 @@
             <input name="Password">
         </label>
         <input type="submit" class="buttons" value="Вход">
-        <input type="button" class="buttons" value="Главная страница" onclick="window.location='/'">
+      </form>
+      <form action="/">
+        <input type="submit" class="buttons" value="Главная страница">
       </form>
     </div>
   </body>

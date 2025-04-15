@@ -38,10 +38,10 @@ forma.addEventListener("submit", (e) => {
         formData.getAll("Favlangs").forEach(val => formObject.Favlangs.push(parseInt(val)))
         
         formObject.Familiar = formData.get("Familiar") || null;
-        console.log(formObject)
+        //console.log(formObject)
 
         //здесь могла быть ваша -р-е-к-л-а-м-а- обработка ответа
-        console.log(`Method:${e.target.method} to ${e.target.action} with data: `, formObject)
+        //console.log(`Method:${e.target.method} to ${e.target.action} with data: `, formObject)
         fetch(e.target.action, {
             method: e.target.method,
             headers: {
@@ -49,7 +49,7 @@ forma.addEventListener("submit", (e) => {
             },
             body: JSON.stringify(formObject),
         }).then(res => {
-            console.log(res)
+            //console.log(res)
             if(res.redirected){
                 window.location.href = res.url;
             }
@@ -68,6 +68,7 @@ const addErrors = () =>{
             console.warn(`Поле с name="${field}" не найдено`);
             continue;
         }
+        //console.log(input)
         // Добавляем классы и сообщение
 
         errorEl.className = "error-message";
@@ -81,8 +82,9 @@ const addErrors = () =>{
     }
 }
 const showErrors = (errors) => {
+    //console.log(errors)
     for (const [field, message] of Object.entries(errors)) {
-        console.log(field)
+        //console.log(field)
         const input = forma.querySelector(`[name="${field}"]`);
         const errorEl = forma.querySelector(`.error-message[data-for="${field}"]`);
         

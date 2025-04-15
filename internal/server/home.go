@@ -10,7 +10,7 @@ import (
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	prevPref := log.Prefix()
-	log.SetPrefix(prevPref + " HomeHandler   ")
+	log.SetPrefix(prevPref + "HomeHandler ")
 	defer log.SetPrefix(prevPref)
 	tmpl := template.Must(template.New("home.html").Funcs(template.FuncMap{
 		"contains": contains,
