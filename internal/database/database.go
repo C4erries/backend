@@ -131,6 +131,7 @@ func GetForm(username string) (types.Form, error) {
 	prevPref := log.Prefix()
 	log.SetPrefix(prevPref + "GetForm ")
 	defer log.SetPrefix(prevPref)
+
 	var selectsql = []string{
 		"SELECT ",
 		"fio, tel, email, birth_date, gender, bio ",

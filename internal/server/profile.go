@@ -73,7 +73,6 @@ func profileHandler(w http.ResponseWriter, r *http.Request) {
 	if !(success) {
 		clearCookies(w)
 	}
-
 	// Рендерим шаблон с данными
 	tmpl.Execute(w, struct {
 		Data     types.Form
